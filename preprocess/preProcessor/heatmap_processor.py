@@ -12,36 +12,14 @@ from tqdm import tqdm
 import matplotlib.pyplot as plt
 
 from mmRadar import FMCWRadar
+from .preprocessor import PreProcessor
+from .utils import to_numpy
 
 
-def to_numpy(data): 
-    if isinstance(data, cp.ndarray): 
-        return data.get()
-    else: 
-        return data
-
-
-class PreProcessor:
-    def __init__(self):
-        
-        self.source_dir = r"/root/raw_data/demo/"
-        self.source_seqs = [
-            # '2024-05-29-22-22-05-443181',   # left
-            # '2024-05-29-22-21-29-074018',   # right
-            # '2024-05-29-22-22-37-027792',    # T
-            # '2024-05-29-23-38-57-931262',   # L
-            # '2024-05-29-23-40-00-290270',   # R
-            # '2024-05-29-23-41-25-579382',   # L far
-            # '2024-05-29-23-42-19-849302',   # R far
-            # '2024-05-29-23-42-58-051479',   # T
-            # '2024-05-30-15-16-03-529798', 
-            # '2024-05-30-15-15-28-511850', 
-            # '2024-05-30-17-09-22-176764', 
-            # '2024-05-30-17-08-49-325422', 
-            '2024-05-30-17-58-57-870565', 
-            # '2024-05-30-17-59-43-324699', 
-        ]
-        self.target_dir = r"/root/proc_data/HuPR/"
+class HeatmapProcessor(PreProcessor):
+    def __init__(self, source_dir, source_seqs, target_dir):
+        super().__init__(source_dir, source_seqs, target_dir)
+        self.radar: FMCWRadar = None
         
     def run_processing(self): 
         for seq_name in self.source_seqs:
@@ -50,31 +28,6 @@ class PreProcessor:
             self.radar = FMCWRadar(mmwave_cfg)
             self.process_data(path_bin_hori, path_bin_vert, target_path_folder=os.path.join(self.target_dir, seq_name), seq_name=seq_name)
             self.process_video(path_video, target_path_folder=os.path.join(self.target_dir, seq_name))
-    
-    def load_folder(self, source_path_folder, load_video=False): 
-        print(os.path.join(source_path_folder, "radar_config.yaml"))
-        with open(os.path.join(source_path_folder, "radar_config.yaml"), 'r') as f:
-            mmwave_cfg = yaml.load(f, Loader=yaml.FullLoader)
-        
-        path_bin_hori = os.path.join(source_path_folder, "adc_data_hori.bin")
-        path_bin_vert = os.path.join(source_path_folder, "adc_data_vert.bin")
-        # path_video = os.path.join(source_path_folder, "record.mkv") if load_video else None
-        path_video = os.path.join(source_path_folder, "video.mp4") if load_video else None
-        
-        return mmwave_cfg, path_bin_hori, path_bin_vert, path_video
-    
-    def process_video(self, path_video, target_path_folder): 
-        cap = cv2.VideoCapture(path_video)
-        fps = cap.get(cv2.CAP_PROP_FPS)
-        interval = int(fps // 10)
-        
-        for idx_frame in tqdm(range(self.radar.num_frames)): 
-            for _ in range(interval): 
-                ret, frame = cap.read() 
-            if ret: 
-                folder_dir = os.path.join(target_path_folder, 'camera')
-                os.makedirs(folder_dir, exist_ok=True)
-                cv2.imwrite(os.path.join(folder_dir, "%09d.jpg" % idx_frame), frame)
     
     def process_data(self, path_bin_hori, path_bin_vert, target_path_folder=None, seq_name=None): 
         data_complex_hori = self.radar.read_data(path_bin_hori, complex=True)
@@ -89,8 +42,34 @@ class PreProcessor:
             self.save_plot(cube_frame_hori, cube_frame_vert, idx_frame=idx_frame, seq_name=seq_name)
         
     def process_data_frame(self, data_frame):
-        data_cube = self.radar.get_RAED_data(data_frame)    # [range, azimuth, elevation, doppler]
-        return data_cube
+        radar_data_8rx, radar_data_4rx = self.radar.parse_data(data_frame)
+        # Get range data
+        radar_data_8rx = self.radar.remove_direct_component(radar_data_8rx, axis=0)
+        radar_data_4rx = self.radar.remove_direct_component(radar_data_4rx, axis=0)
+        radar_data_8rx = self.radar.range_fft(radar_data_8rx)
+        radar_data_4rx = self.radar.range_fft(radar_data_4rx)
+        # Get doppler data
+        radar_data_8rx = self.radar.doppler_fft(radar_data_8rx, shift=False)
+        radar_data_4rx = self.radar.doppler_fft(radar_data_4rx, shift=False)
+        # Padding to align: [range, azimuth, elevation, doppler]
+        radar_data_4rx = np.pad(radar_data_4rx, ((0, 0), (2, 2), (0, 0)))
+        radar_data = np.stack([radar_data_8rx, radar_data_4rx], axis=2) 
+        radar_data = np.pad(radar_data, ((0, 0), (0, 0), (0, self.radar.num_elevation_bins - 2), (0, 0)))
+        # Get elevation data (along specific antenna)
+        # radar_data[:, 2: 6,:, :] = self.radar.elevation_fft(radar_data[:, 2: 6,:, :], axis=2, shift=False)
+        # Get angle data
+        radar_data = self.radar.angle_fft(radar_data, axis=1, shift=False)
+        radar_data = self.radar.elevation_fft(radar_data, axis=2, shift=False)
+        # Shift the fft result
+        radar_data = np.fft.fftshift(radar_data, axes=(1, 2, 3))    # [range, azimuth, elevation, doppler]
+        # Get the specific range
+        radar_data_slc = radar_data[46: 110, :, :, :]
+        # Select specific velocity
+        radar_data_slc = radar_data_slc[:, :, :, self.radar.num_doppler_bins // 2 - 8: self.radar.num_doppler_bins // 2 + 8]
+        # Flip at angle axis
+        # radar_data_slc = np.flip(radar_data_slc, axis=(0, 1, 2))
+        radar_data_slc = np.flip(radar_data_slc, axis=0)
+        return radar_data_slc.transpose(3, 0, 1, 2)
     
     def save_plot(self, data_hori, data_vert, idx_frame=0, seq_name=None): 
         plt.clf()
@@ -114,9 +93,6 @@ class PreProcessor:
         folder_dir = os.path.join(target_dir, view)
         os.makedirs(folder_dir, exist_ok=True)
         np.save(os.path.join(folder_dir, "%09d.npy" % idx_frame), data)
+    
 
-
-if __name__ == '__main__': 
-    # an example for processing data
-    processor = PreProcessor()
-    processor.run_processing()
+    

@@ -91,7 +91,6 @@ class FMCWRadar(object):
             IQ_samples = IQ_samples * self.wind_func(self.num_fast_samples)  
             slow_time_samples = np.fft.fft(IQ_samples, n=self.num_range_bins, axis=-1)
             slow_time_samples = np.transpose(slow_time_samples, (2, 1, 0))
-        # assert slow_time_samples.shape == (self.num_range_bins, self.num_antenna, self.num_slow_samples)
         return slow_time_samples
     
     def doppler_fft(self, slow_time_samples, axis=-1, shift=True):
@@ -190,44 +189,3 @@ class FMCWRadar(object):
             range_angle_spectrum = np.abs(range_angle_spectrum)
             range_angle_spectrum = range_angle_spectrum.sum(axis=-1)
         return range_angle_spectrum
-
-    def get_RAED_data(self, radar_data): 
-        radar_data_8rx, radar_data_4rx = self.parse_data(radar_data)
-        # Get range data
-        radar_data_8rx = self.remove_direct_component(radar_data_8rx, axis=0)
-        radar_data_4rx = self.remove_direct_component(radar_data_4rx, axis=0)
-        radar_data_8rx = self.range_fft(radar_data_8rx)
-        radar_data_4rx = self.range_fft(radar_data_4rx)
-        # radar_data_8rx = self.remove_direct_component(radar_data_8rx, axis=-1)
-        # radar_data_4rx = self.remove_direct_component(radar_data_4rx, axis=-1)
-        # Get doppler data
-        radar_data_8rx = self.doppler_fft(radar_data_8rx, shift=False)
-        radar_data_4rx = self.doppler_fft(radar_data_4rx, shift=False)
-        # Padding to align: [range, azimuth, elevation, doppler]
-        radar_data_4rx = np.pad(radar_data_4rx, ((0, 0), (2, 2), (0, 0)))
-        radar_data = np.stack([radar_data_8rx, radar_data_4rx], axis=2) 
-        radar_data = np.pad(radar_data, ((0, 0), (0, 0), (0, self.num_elevation_bins - 2), (0, 0)))
-        # Get elevation data (along specific antenna)
-        # radar_data[:, 2: 6,:, :] = self.elevation_fft(radar_data[:, 2: 6,:, :], axis=2, shift=False)
-        # Get angle data
-        radar_data = self.angle_fft(radar_data, axis=1, shift=False)
-        radar_data = self.elevation_fft(radar_data, axis=2, shift=False)
-        # Shift the fft result
-        radar_data = np.fft.fftshift(radar_data, axes=(1, 2, 3))    # [range, azimuth, elevation, doppler]
-        # Get the specific range
-        radar_data_slc = radar_data[46: 110, :, :, :]
-        # Select specific velocity
-        radar_data_slc = radar_data_slc[:, :, :, self.num_doppler_bins // 2 - 8: self.num_doppler_bins // 2 + 8]
-        # Flip at angle axis
-        # radar_data_slc = np.flip(radar_data_slc, axis=(0, 1, 2))
-        radar_data_slc = np.flip(radar_data_slc, axis=0)
-        
-        # plt.figure(figsize=(16, 4))
-        # plt.imshow(np.log10(np.abs(radar_data).sum(axis=(0, 3)).T).get())
-        # for i in range(8): 
-        #     plt.subplot(1, 8, i + 1)
-        #     plt.imshow(np.log10(np.abs(radar_data[:, :, i, :]).sum(axis=-1)).get())
-        #     plt.title('elevation %d' % i)
-        # mpld3.show()
-        
-        return radar_data_slc.transpose(3, 0, 1, 2)
