@@ -13,21 +13,23 @@ import matplotlib.pyplot as plt
 
 from mmRadar import FMCWRadar
 from .preprocessor import PreProcessor
-from .utils import to_numpy
+from .utils import to_numpy, plot_heatmap2D
 
 
 class HeatmapProcessor(PreProcessor):
-    def __init__(self, source_dir, source_seqs, target_dir):
-        super().__init__(source_dir, source_seqs, target_dir)
+    def __init__(self, source_dir, target_dir):
+        super().__init__(source_dir, target_dir)
         self.radar: FMCWRadar = None
         
     def run_processing(self): 
         for seq_name in self.source_seqs:
             print('Processing', seq_name)
-            mmwave_cfg, path_bin_hori, path_bin_vert, path_video = self.load_folder(source_path_folder=os.path.join(self.source_dir, seq_name), load_video=True)        
+            mmwave_cfg, path_bin_hori, path_bin_vert, path_video = self.load_folder(
+                source_path_folder=os.path.join(self.source_dir, seq_name), load_video=False)        
             self.radar = FMCWRadar(mmwave_cfg)
             self.process_data(path_bin_hori, path_bin_vert, target_path_folder=os.path.join(self.target_dir, seq_name), seq_name=seq_name)
-            self.process_video(path_video, target_path_folder=os.path.join(self.target_dir, seq_name))
+            if path_video is not None: 
+                self.process_video(path_video, target_path_folder=os.path.join(self.target_dir, seq_name))
     
     def process_data(self, path_bin_hori, path_bin_vert, target_path_folder=None, seq_name=None): 
         data_complex_hori = self.radar.read_data(path_bin_hori, complex=True)
@@ -39,7 +41,8 @@ class HeatmapProcessor(PreProcessor):
             cube_frame_vert = to_numpy(self.process_data_frame(data_frame_vert))
             self.save_data(cube_frame_hori, 'hori', idx_frame=idx_frame, target_dir=target_path_folder)
             self.save_data(cube_frame_vert, 'vert', idx_frame=idx_frame, target_dir=target_path_folder)
-            self.save_plot(cube_frame_hori, cube_frame_vert, idx_frame=idx_frame, seq_name=seq_name)
+            if idx_frame % 20 == 0: 
+                self.save_plot(cube_frame_hori, cube_frame_vert, idx_frame=idx_frame, seq_name=seq_name)
         
     def process_data_frame(self, data_frame):
         radar_data_8rx, radar_data_4rx = self.radar.parse_data(data_frame)
@@ -63,30 +66,23 @@ class HeatmapProcessor(PreProcessor):
         # Shift the fft result
         radar_data = np.fft.fftshift(radar_data, axes=(1, 2, 3))    # [range, azimuth, elevation, doppler]
         # Get the specific range
-        radar_data_slc = radar_data[46: 110, :, :, :]
+        radar_data_slc = radar_data[30: 94, :, :, :]
         # Select specific velocity
         radar_data_slc = radar_data_slc[:, :, :, self.radar.num_doppler_bins // 2 - 8: self.radar.num_doppler_bins // 2 + 8]
         # Flip at angle axis
-        # radar_data_slc = np.flip(radar_data_slc, axis=(0, 1, 2))
-        radar_data_slc = np.flip(radar_data_slc, axis=0)
+        radar_data_slc = np.flip(radar_data_slc, axis=(0, 1, 2))
         return radar_data_slc.transpose(3, 0, 1, 2)
     
     def save_plot(self, data_hori, data_vert, idx_frame=0, seq_name=None): 
         plt.clf()
         plt.subplot(121)
-        # ramap = np.abs(data_hori).sum((0, 3))
-        ramap = np.abs(data_hori).sum((0, 1)).T
-        plt.imshow(ramap)
-        # plt.title('Range-Angle View')        
-        plt.title('Angle-Elevation View')        
+        plot_heatmap2D(data_hori, axes=(1, 2), title='Range-Angle View')
         plt.subplot(122)
-        # remap = np.abs(data_vert).sum((0, 3)).T
-        remap = np.abs(data_vert).sum((0, 1))
-        plt.imshow(remap)
-        plt.title('Angle-Elevation View')  
-        if not os.path.exists('/root/viz/%s/heatmap' % seq_name): 
-            os.makedirs('/root/viz/%s/heatmap' % seq_name)
-        plt.savefig('/root/viz/%s/heatmap/%09d.png' % (seq_name, idx_frame))
+        plot_heatmap2D(data_vert, axes=(1, 2), title='Range-Elevation View', transpose=True)
+        save_dir = '/root/viz/%s/heatmap' % seq_name
+        if not os.path.exists(save_dir): 
+            os.makedirs(save_dir)
+        plt.savefig(os.path.join(save_dir, '%09d.png' % idx_frame))
 
     def save_data(self, data, view='hori', idx_frame=0, target_dir=None): 
         assert view in ['hori', 'vert'], 'Wrong view!!!'

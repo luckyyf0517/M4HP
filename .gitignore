@@ -12,3 +12,4 @@ viz
 log/
 log
 *.mp4
+*/*.zip

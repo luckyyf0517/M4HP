@@ -12,21 +12,20 @@ import matplotlib.pyplot as plt
 
 
 class PreProcessor(): 
-    def __init__(self, source_dir, source_seqs, target_dir): 
+    def __init__(self, source_dir, target_dir): 
         self.source_dir = source_dir
-        self.source_seqs = source_seqs
+        self.source_seqs = sorted(os.listdir(source_dir))
         self.target_dir = target_dir
         
         self.radar = None
         
     def load_folder(self, source_path_folder, load_video=False): 
-        print(os.path.join(source_path_folder, "radar_config.yaml"))
-        with open(os.path.join(source_path_folder, "radar_config.yaml"), 'r') as f:
+        print(os.path.join(source_path_folder, "mmwave", "radar_config.yaml"))
+        with open(os.path.join(source_path_folder, "mmwave", "radar_config.yaml"), 'r') as f:
             mmwave_cfg = yaml.load(f, Loader=yaml.FullLoader)
-        path_bin_hori = os.path.join(source_path_folder, "adc_data_hori.bin")
-        path_bin_vert = os.path.join(source_path_folder, "adc_data_vert.bin")
+        path_bin_hori = os.path.join(source_path_folder, "mmwave", "adc_data_hori.bin")
+        path_bin_vert = os.path.join(source_path_folder, "mmwave", "adc_data_vert.bin")
         path_video = os.path.join(source_path_folder, "video.mp4") if load_video else None
-        
         return mmwave_cfg, path_bin_hori, path_bin_vert, path_video
     
     def process_video(self, path_video, target_path_folder): 

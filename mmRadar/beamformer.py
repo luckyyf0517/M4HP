@@ -229,33 +229,3 @@ class MUSICBeamformer():
 
 #         # Convert the result to NumPy if necessary
 #         return np.array(sv_est.detach().numpy())
-    
-    
-if __name__ == "__main__":
-    
-    import matplotlib.pyplot as plt
-    
-    slow_time_samples = np.load("./save/slow_time_samples_4.npy")
-    
-    range_spectrum = np.linalg.norm(slow_time_samples, ord=2, axis=(1, 2)) # [num_range_bins]
-      
-    
-    print("Shape: ", slow_time_samples.shape)
-    
-    beamformer = CaponBeamformer(num_antennas=8, num_steps=181)
-    # beamformer = BartlettBeamformer(num_antennas=8, num_steps=181)
-    
-    # For Robust Capon Beamforming, we need to estimate the gain matrix first
-    # rs = np.abs(slow_time_samples)
-    # strengths = np.percentile(rs, 95, axis=-1) 
-    # beamformer.update_gain_mat(strengths)
-    
-    power_spectrums, _ = beamformer.steering(slow_time_samples)
-    
-    range_spectrum = np.linalg.norm(power_spectrums, ord=2, axis=-1) # [num_range_bins]
-    
-    plt.plot(range_spectrum.get())
-    plt.show()  
-    
-    plt.imshow(np.abs(power_spectrums).get(), aspect='auto', cmap='jet')
-    plt.show()
