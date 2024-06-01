@@ -34,7 +34,7 @@ class DInterface(pl.LightningDataModule):
     def setup(self, stage=None):
         if stage == 'fit':
             self.train_set = self.generate_dataset('train')
-            self.val_set = self.generate_dataset('test')
+            self.val_set = self.generate_dataset('val')
         elif stage == 'test':
             self.test_set = self.generate_dataset('test')
         else: 

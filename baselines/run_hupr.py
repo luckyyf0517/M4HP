@@ -52,7 +52,8 @@ if __name__ == "__main__":
         log_every_n_steps=1,
         enable_progress_bar=False,
         reload_dataloaders_every_n_epochs=1,
-        callbacks=[checkpoint_callback]
+        callbacks=[checkpoint_callback], 
+        num_sanity_val_steps=0
     )
 
     if args.eval:

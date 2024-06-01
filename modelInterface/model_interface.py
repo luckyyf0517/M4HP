@@ -41,14 +41,18 @@ class MInterface(pl.LightningModule):
     def forward(self, x):
         return self.model(**x)
 
+    def on_train_epoch_start(self):
+        print("on_epoch_start")
+
     def training_step(self, batch, batch_idx):
+        print('in train')
         keypoints = batch['jointsGroup']
         VRDAEmaps_hori = batch['VRDAEmap_hori'].float()
         VRDAEmaps_vert = batch['VRDAEmap_vert'].float()
         preds = self.model(VRDAEmaps_hori, VRDAEmaps_vert)
         loss, loss2, _, _ = self.lossComputer.computeLoss(preds, keypoints)
-        self.log('train_loss/loss', loss, on_step=True, on_epoch=False, prog_bar=False, logger=True, sync_dist_group=True)
-        self.log('train_loss/loss2', loss2, on_step=True, on_epoch=False, prog_bar=False, logger=True, sync_dist_group=True)
+        self.log('train_loss/loss', loss, on_step=True, on_epoch=False, prog_bar=False, logger=True, sync_dist=True)
+        self.log('train_loss/loss2', loss2, on_step=True, on_epoch=False, prog_bar=False, logger=True, sync_dist=True)
         # print info
         num_iter = len(self.trainer.train_dataloader)
         self.print('epoch {0:04d}, iter {1:04d} / {2:04d} | TOTAL loss: {3:0>10.4f}'. \
@@ -62,8 +66,8 @@ class MInterface(pl.LightningModule):
         VRDAEmaps_vert = batch['VRDAEmap_vert'].float().to(self.device)
         preds = self.model(VRDAEmaps_hori, VRDAEmaps_vert)
         loss, loss2, preds, gts = self.lossComputer.computeLoss(preds, keypoints)
-        self.log('validation_loss/loss', loss, on_step=False, on_epoch=True, prog_bar=False, logger=True, sync_dist_group=True)
-        self.log('validation_loss/loss2', loss2, on_step=False, on_epoch=True, prog_bar=False, logger=True, sync_dist_group=True)
+        self.log('validation_loss/loss', loss, on_step=False, on_epoch=True, prog_bar=False, logger=True, sync_dist=True)
+        self.log('validation_loss/loss2', loss2, on_step=False, on_epoch=True, prog_bar=False, logger=True, sync_dist=True)
         # print info
         num_iter = len(self.trainer.val_dataloaders)
         self.print('\033[93m' + 'epoch {0:04d}, iter {1:04d} / {2:04d} | TOTAL loss: {3:0>10.4f}'. \
@@ -91,6 +95,8 @@ class MInterface(pl.LightningModule):
         return
     
     def on_train_end(self):
+        print('end')
+        exit()
         return 
     
     def on_validation_epoch_end(self):
