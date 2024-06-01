@@ -17,9 +17,10 @@ from .utils import to_numpy, plot_heatmap2D
 
 
 class HeatmapProcessor(PreProcessor):
-    def __init__(self, source_dir, target_dir):
+    def __init__(self, source_dir, target_dir, full_view=False):
         super().__init__(source_dir, target_dir)
         self.radar: FMCWRadar = None
+        self.full_view = full_view
         
     def run_processing(self): 
         for seq_name in self.source_seqs:
@@ -27,6 +28,8 @@ class HeatmapProcessor(PreProcessor):
             mmwave_cfg, path_bin_hori, path_bin_vert, path_video = self.load_folder(
                 source_path_folder=os.path.join(self.source_dir, seq_name), load_video=False)        
             self.radar = FMCWRadar(mmwave_cfg)
+            if self.full_view: 
+                self.radar.num_angle_bins = self.radar.num_range_bins
             self.process_data(path_bin_hori, path_bin_vert, target_path_folder=os.path.join(self.target_dir, seq_name), seq_name=seq_name)
             if path_video is not None: 
                 self.process_video(path_video, target_path_folder=os.path.join(self.target_dir, seq_name))
@@ -65,9 +68,12 @@ class HeatmapProcessor(PreProcessor):
         radar_data = self.radar.elevation_fft(radar_data, axis=2, shift=False)
         # Shift the fft result
         radar_data = np.fft.fftshift(radar_data, axes=(1, 2, 3))    # [range, azimuth, elevation, doppler]
-        # Get the specific range
-        center_range_bin = int(2.5 / self.radar.config.range_resolution)
-        radar_data_slc = radar_data[center_range_bin - 32: center_range_bin + 32, :, :, :]
+        if self.full_view: 
+            radar_data_slc = radar_data
+        else: 
+            # Get the specific range
+            center_range_bin = int(2.5 / self.radar.config.range_resolution)
+            radar_data_slc = radar_data[center_range_bin - 32: center_range_bin + 32, :, :, :]
         # Select specific velocity
         radar_data_slc = radar_data_slc[:, :, :, self.radar.num_doppler_bins // 2 - 8: self.radar.num_doppler_bins // 2 + 8]
         # Flip at angle axis

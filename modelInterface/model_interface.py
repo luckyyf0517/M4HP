@@ -12,8 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import os
 import time
+import json
 import torch
+import numpy as np
 import torch.nn as nn
 import torch.optim as optim
 import torch.nn.functional as F
@@ -61,8 +64,6 @@ class MInterface(pl.LightningModule):
         loss, loss2, preds, gts = self.lossComputer.computeLoss(preds, keypoints)
         self.log('validation_loss/loss', loss, on_step=False, on_epoch=True, prog_bar=False, logger=True, sync_dist_group=True)
         self.log('validation_loss/loss2', loss2, on_step=False, on_epoch=True, prog_bar=False, logger=True, sync_dist_group=True)
-        # for drawing GT
-        plotHumanPose(preds * self.cfg.DATASET.imgSize / self.cfg.DATASET.heatmapSize, self.cfg, self.visDir, imageId, None)
         # print info
         num_iter = len(self.trainer.val_dataloaders)
         self.print('\033[93m' + 'epoch {0:04d}, iter {1:04d} / {2:04d} | TOTAL loss: {3:0>10.4f}'. \
@@ -70,16 +71,23 @@ class MInterface(pl.LightningModule):
         return loss
 
     def test_step(self, batch, batch_idx):
+        bbox = batch['bbox']
         imageId = batch['imageId']
         keypoints = batch['jointsGroup']
         VRDAEmaps_hori = batch['VRDAEmap_hori'].float().to(self.device)
         VRDAEmaps_vert = batch['VRDAEmap_vert'].float().to(self.device)
         preds = self.model(VRDAEmaps_hori, VRDAEmaps_vert)
-        # for drawing GT
-        plotHumanPose(preds * self.cfg.DATASET.imgSize / self.cfg.DATASET.heatmapSize, self.cfg, self.visDir, imageId, None)
+        _, _, preds2d, keypoints2d = self.lossComputer.computeLoss(preds, keypoints)
         # print info
         num_iter = len(self.trainer.test_dataloaders)
         self.print('\033[93m' + 'batch {0:04d} / {1:04d}'.format(batch_idx, num_iter) + '\033[0m')
+        # draw with GT
+        plotHumanPose(preds2d * self.cfg.DATASET.imgHeatmapRatio, imageIdx=imageId, bbox=bbox, cfg=self.cfg, visDir=self.args.visDir)
+        # evaluation (by method in dataset)
+        # savePreds = self.saveKeypoints(preds2d * self.cfg.DATASET.imgHeatmapRatio, bbox, imageId)
+        # self.writeKeypoints(savePreds)
+        # accAP = self.trainer.test_dataloaders.dataset.evaluateEach(loadDir=os.path.join('/root/log', self.args.version))
+        # self.log('test_acc/AP', accAP, on_step=False, on_epoch=True, prog_bar=False, logger=True, sync_dist_group=True)
         return
     
     def on_train_end(self):
@@ -126,3 +134,28 @@ class MInterface(pl.LightningModule):
         if model_state_dict is not None:
             self.model.load_state_dict(model_state_dict)
             
+    def writeKeypoints(self, preds):
+        predFile = os.path.join(self.cfg.DATASET.logDir, self.args.version, "test_results.json" if self.args.eval else "val_results.json")
+        with open(predFile, 'w') as fp:
+            json.dump(preds, fp)
+    
+    def saveKeypoints(self, preds, bbox, image_id, predHeatmap=None):
+        
+        savePreds = []
+        visidx = np.ones((len(preds), self.cfg.DATASET.numKeypoints, 1))
+        preds = np.concatenate((preds, visidx), axis=2)
+        predsigma = np.zeros((len(preds), self.cfg.DATASET.numKeypoints))
+        
+        for j in range(len(preds)):
+            block = {}
+            block["category_id"] = 1
+            block["image_id"] = image_id[j].item()
+            block["score"] = 1.0
+            block["keypoints"] = preds[j].reshape(self.cfg.DATASET.numKeypoints*3).tolist()
+            if predHeatmap is not None:
+                for kpts in range(self.cfg.DATASET.numKeypoints):
+                    predsigma[j, kpts] = predHeatmap[j, kpts].var().item() * self.heatmapSize
+                block["sigma"] = predsigma[j].tolist()
+            block_copy = block.copy()
+            savePreds.append(block_copy)
+        return savePreds

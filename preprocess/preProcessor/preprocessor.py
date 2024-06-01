@@ -15,6 +15,11 @@ class PreProcessor():
     def __init__(self, source_dir, target_dir): 
         self.source_dir = source_dir
         self.source_seqs = sorted(os.listdir(source_dir))
+        
+        for seq in self.source_seqs: 
+            if 'deprecated' in seq: 
+                self.source_seqs.remove(seq)
+        
         self.target_dir = target_dir
         
         self.radar = None

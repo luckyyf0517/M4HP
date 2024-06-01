@@ -12,4 +12,5 @@ viz
 log/
 log
 *.mp4
+*.txt
 */*.zip

@@ -40,14 +40,14 @@ if __name__ == "__main__":
         save_weights_only=False,
     )
     
-    logger = TensorBoardLogger(save_dir='/root', name='log', version=args.dir)
-    checkpoint_path = os.path.join('/root', 'log', args.dir, 'last.ckpt')
+    logger = TensorBoardLogger(save_dir='/root', name='log', version=args.version)
+    checkpoint_path = os.path.join(cfg.DATASET.logDir, args.version, 'last.ckpt')
     
     # Default used by the Trainer (no scaling of batch size)
     trainer = Trainer(
-        devices=[0, 1],
+        devices=args.gpuIDs,
         max_epochs=cfg.TRAINING.epochs,
-        default_root_dir=args.dir,
+        default_root_dir=args.version,
         logger=logger,
         log_every_n_steps=1,
         enable_progress_bar=False,
