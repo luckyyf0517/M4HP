@@ -66,7 +66,8 @@ class HeatmapProcessor(PreProcessor):
         # Shift the fft result
         radar_data = np.fft.fftshift(radar_data, axes=(1, 2, 3))    # [range, azimuth, elevation, doppler]
         # Get the specific range
-        radar_data_slc = radar_data[30: 94, :, :, :]
+        center_range_bin = int(2.5 / self.radar.config.range_resolution)
+        radar_data_slc = radar_data[center_range_bin - 32: center_range_bin + 32, :, :, :]
         # Select specific velocity
         radar_data_slc = radar_data_slc[:, :, :, self.radar.num_doppler_bins // 2 - 8: self.radar.num_doppler_bins // 2 + 8]
         # Flip at angle axis

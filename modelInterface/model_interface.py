@@ -22,6 +22,7 @@ import importlib
 import pytorch_lightning as pl
 
 from baselines.HuPR.misc.losses import LossComputer
+from baselines.HuPR.misc.plot import plotHumanPose
 
 
 class MInterface(pl.LightningModule):
@@ -43,27 +44,42 @@ class MInterface(pl.LightningModule):
         VRDAEmaps_vert = batch['VRDAEmap_vert'].float()
         preds = self.model(VRDAEmaps_hori, VRDAEmaps_vert)
         loss, loss2, _, _ = self.lossComputer.computeLoss(preds, keypoints)
-        self.log('Loss/loss', loss, on_step=True, on_epoch=False, prog_bar=False, logger=True, sync_dist_group=True)
-        self.log('Loss/loss2', loss2, on_step=True, on_epoch=False, prog_bar=False, logger=True, sync_dist_group=True)
-        
+        self.log('train_loss/loss', loss, on_step=True, on_epoch=False, prog_bar=False, logger=True, sync_dist_group=True)
+        self.log('train_loss/loss2', loss2, on_step=True, on_epoch=False, prog_bar=False, logger=True, sync_dist_group=True)
+        # print info
         num_iter = len(self.trainer.train_dataloader)
         self.print('epoch {0:04d}, iter {1:04d} / {2:04d} | TOTAL loss: {3:0>10.4f}'. \
             format(self.current_epoch, batch_idx, num_iter, loss.item()))
         return loss
 
     def validation_step(self, batch, batch_idx):
+        imageId = batch['imageId']
         keypoints = batch['jointsGroup']
         VRDAEmaps_hori = batch['VRDAEmap_hori'].float().to(self.device)
         VRDAEmaps_vert = batch['VRDAEmap_vert'].float().to(self.device)
         preds = self.model(VRDAEmaps_hori, VRDAEmaps_vert)
         loss, loss2, preds, gts = self.lossComputer.computeLoss(preds, keypoints)
-
+        self.log('validation_loss/loss', loss, on_step=False, on_epoch=True, prog_bar=False, logger=True, sync_dist_group=True)
+        self.log('validation_loss/loss2', loss2, on_step=False, on_epoch=True, prog_bar=False, logger=True, sync_dist_group=True)
+        # for drawing GT
+        plotHumanPose(preds * self.cfg.DATASET.imgSize / self.cfg.DATASET.heatmapSize, self.cfg, self.visDir, imageId, None)
+        # print info
         num_iter = len(self.trainer.val_dataloaders)
         self.print('\033[93m' + 'epoch {0:04d}, iter {1:04d} / {2:04d} | TOTAL loss: {3:0>10.4f}'. \
             format(self.current_epoch, batch_idx, num_iter, loss.item()) + '\033[0m')
         return loss
 
     def test_step(self, batch, batch_idx):
+        imageId = batch['imageId']
+        keypoints = batch['jointsGroup']
+        VRDAEmaps_hori = batch['VRDAEmap_hori'].float().to(self.device)
+        VRDAEmaps_vert = batch['VRDAEmap_vert'].float().to(self.device)
+        preds = self.model(VRDAEmaps_hori, VRDAEmaps_vert)
+        # for drawing GT
+        plotHumanPose(preds * self.cfg.DATASET.imgSize / self.cfg.DATASET.heatmapSize, self.cfg, self.visDir, imageId, None)
+        # print info
+        num_iter = len(self.trainer.test_dataloaders)
+        self.print('\033[93m' + 'batch {0:04d} / {1:04d}'.format(batch_idx, num_iter) + '\033[0m')
         return
     
     def on_train_end(self):

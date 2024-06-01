@@ -6,9 +6,8 @@ from preProcessor import HeatmapProcessor, PointCloudGenerator, AnnotationProces
 
 
 if __name__ == '__main__': 
-    processor = AnnotationProcessor(
-    # processor = HeatmapProcessor(
-        source_dir = "/root/raw_data/demo03/", 
-        target_dir = "/root/proc_data/HuPR_demo/"
+    processor = HeatmapProcessor(
+        source_dir = "/root/raw_data/demo/", 
+        target_dir = "/root/proc_data/HuPR_collected/"
     )
     processor.run_processing()
