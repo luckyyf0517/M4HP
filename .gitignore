@@ -1,0 +1,15 @@
+.idea/
+**/__pycache__
+**/.DS_Store
+
+**/saved_files/*
+*/CLI_LogFile.txt
+
+data/
+data
+viz/
+viz
+log/
+log
+*.mp4
+*/*.zip

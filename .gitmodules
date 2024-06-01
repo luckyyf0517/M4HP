@@ -1,0 +1,9 @@
+[submodule "baselines/HuPR"]
+	path = baselines/HuPR
+	url = git@git.zju.edu.cn:3200100917/HuPR.git
+[submodule "baselines/mmDiff"]
+	path = baselines/mmDiff
+	url = git@git.zju.edu.cn:3200100917/mmDiff.git
+[submodule "annotation_tool"]
+	path = annotation_tool
+	url = git@git.zju.edu.cn:3200100917/mm_annotation_tool.git
