@@ -1,12 +1,9 @@
 [submodule "baselines/HuPR"]
 	path = baselines/HuPR
-	url = https://github.com/luckyyf0517/HuPR.git
-[submodule "baselines/mmMesh"]
-	path = baselines/mmMesh
-	url = https://github.com/luckyyf0517/mmMesh.git
+	url = git@git.zju.edu.cn:3200100917/HuPR.git
 [submodule "baselines/mmDiff"]
 	path = baselines/mmDiff
-	url = https://github.com/luckyyf0517/mmDiff.git
+	url = git@git.zju.edu.cn:3200100917/mmDiff.git
 [submodule "annotation_tool"]
 	path = annotation_tool
-	url = https://github.com/luckyyf0517/mm_annotation_tool.git
+	url = git@git.zju.edu.cn:3200100917/mm_annotation_tool.git
