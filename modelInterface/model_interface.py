@@ -42,10 +42,11 @@ class MInterface(pl.LightningModule):
         return self.model(**x)
     
     def training_step(self, batch, batch_idx):
+        mmwave_cfg = batch['mmwave_cfg']
         keypoints = batch['jointsGroup']
         VRDAEmaps_hori = batch['VRDAEmap_hori'].float()
         VRDAEmaps_vert = batch['VRDAEmap_vert'].float()
-        preds = self.model(VRDAEmaps_hori, VRDAEmaps_vert)
+        preds = self.model(VRDAEmaps_hori, VRDAEmaps_vert, mmwave_cfg)
         loss, loss2, _, _ = self.lossComputer.computeLoss(preds, keypoints)
         self.log('train_loss/loss', loss, on_step=True, on_epoch=False, prog_bar=False, logger=True, sync_dist=True)
         self.log('train_loss/loss2', loss2, on_step=True, on_epoch=False, prog_bar=False, logger=True, sync_dist=True)
@@ -57,10 +58,11 @@ class MInterface(pl.LightningModule):
 
     def validation_step(self, batch, batch_idx):
         imageId = batch['imageId']
+        mmwave_cfg = batch['mmwave_cfg']
         keypoints = batch['jointsGroup']
         VRDAEmaps_hori = batch['VRDAEmap_hori'].float().to(self.device)
         VRDAEmaps_vert = batch['VRDAEmap_vert'].float().to(self.device)
-        preds = self.model(VRDAEmaps_hori, VRDAEmaps_vert)
+        preds = self.model(VRDAEmaps_hori, VRDAEmaps_vert, mmwave_cfg)
         loss, loss2, preds, gts = self.lossComputer.computeLoss(preds, keypoints)
         self.log('validation_loss/loss', loss, on_step=False, on_epoch=True, prog_bar=False, logger=True, sync_dist=True)
         self.log('validation_loss/loss2', loss2, on_step=False, on_epoch=True, prog_bar=False, logger=True, sync_dist=True)
