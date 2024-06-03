@@ -2,7 +2,7 @@ import os
 import shutil
 
 if __name__ == '__main__': 
-    dir_name = '/root/raw_data/demo/'
+    dir_name = '/remote-home/iot_yanyifan/mmwave_dataset_workspace/collectedData'
     folder_list  = sorted(os.listdir(dir_name))
     folder_list = [os.path.join(dir_name, folder) for folder in folder_list]
     

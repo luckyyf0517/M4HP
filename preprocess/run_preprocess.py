@@ -7,9 +7,9 @@ from preProcessor import HeatmapProcessor, PointCloudGenerator, AnnotationProces
 
 if __name__ == '__main__': 
     # processor = AnnotationProcessor(
-    # processor = HeatmapProcessor(
-    processor = SegmentAnnotationProcessor(
-        source_dir = "/root/raw_data/demo/", 
+    processor = HeatmapProcessor(
+    # processor = SegmentAnnotationProcessor(
+        source_dir = "/remote-home/iot_yanyifan/mmwave_dataset_workspace/collectedData", 
         target_dir = "/root/proc_data/HuPR_collected/", 
         # target_dir = "/root/proc_data/HuPR_collected_full/", 
         # full_view=True

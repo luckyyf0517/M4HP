@@ -24,6 +24,7 @@ class HeatmapProcessor(PreProcessor):
         
     def run_processing(self): 
         for seq_name in self.source_seqs[15:]:
+            seq_name = 'seq_0001'
             print('Processing', seq_name)
             mmwave_cfg, path_bin_hori, path_bin_vert, path_video = self.load_folder(
                 source_path_folder=os.path.join(self.source_dir, seq_name), load_video=False)        
@@ -36,20 +37,21 @@ class HeatmapProcessor(PreProcessor):
     
     def process_data(self, path_bin_hori, path_bin_vert, target_path_folder=None, seq_name=None): 
         data_complex_hori = self.radar.read_data(path_bin_hori, complex=True)
-        data_complex_vert = self.radar.read_data(path_bin_vert, complex=True)
-        data_out_vert = np.zeros((self.radar.num_frames, 16, 64, 64, 8), dtype=np.complex_)
+        # data_complex_vert = self.radar.read_data(path_bin_vert, complex=True)
         data_out_hori = np.zeros((self.radar.num_frames, 16, 64, 64, 8), dtype=np.complex_)
+        # data_out_vert = np.zeros((self.radar.num_frames, 16, 64, 64, 8), dtype=np.complex_)
         for idx_frame in tqdm(range(self.radar.num_frames)): 
             data_frame_hori = data_complex_hori[idx_frame]
-            data_frame_vert = data_complex_vert[idx_frame]
+            # data_frame_vert = data_complex_vert[idx_frame]
             cube_frame_hori = to_numpy(self.process_data_frame(data_frame_hori))
-            cube_frame_vert = to_numpy(self.process_data_frame(data_frame_vert))
+            # cube_frame_vert = to_numpy(self.process_data_frame(data_frame_vert))
             # self.save_data(cube_frame_hori, 'hori', idx_frame=idx_frame, target_dir=target_path_folder)
             # self.save_data(cube_frame_vert, 'vert', idx_frame=idx_frame, target_dir=target_path_folder)
             # if idx_frame % 20 == 0: 
             #     self.save_plot(cube_frame_hori, cube_frame_vert, idx_frame=idx_frame, seq_name=seq_name)
             data_out_hori[idx_frame, :, :, :, :] = cube_frame_hori
-            data_out_vert[idx_frame, :, :, :, :] = cube_frame_vert
+            # data_out_vert[idx_frame, :, :, :, :] = cube_frame_vert
+            exit()
         self.save_all_data(data_out_hori, 'hori', target_dir=target_path_folder)
         self.save_all_data(data_out_vert, 'vert', target_dir=target_path_folder)
         

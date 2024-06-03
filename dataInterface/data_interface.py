@@ -86,7 +86,6 @@ class SubsetShuffleSampler(DistributedSampler):
         super().__init__(deepcopy(image_ids)) # compute self.total_size and self.num_replicas
         random_idx_pair = [i for i in enumerate(deepcopy(image_ids))]
         
-        print(f"=========== init sampler with {len(image_ids)} samples =============")
         if shuffle: 
             random.shuffle(random_idx_pair)
         
