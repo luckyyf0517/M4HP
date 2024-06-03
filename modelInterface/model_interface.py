@@ -39,17 +39,20 @@ class MInterface(pl.LightningModule):
         self.configure_loss()
 
     def forward(self, x):
-        return self.model(**x)
+        return self.model(x)
     
     def training_step(self, batch, batch_idx):
-        mmwave_cfg = batch['mmwave_cfg']
-        keypoints = batch['jointsGroup']
-        VRDAEmaps_hori = batch['VRDAEmap_hori'].float()
-        VRDAEmaps_vert = batch['VRDAEmap_vert'].float()
+        # random_indices = np.random.choice(
+        #     [i for i in range(self.cfg.TRAINING.batchSize * self.args.sampling_ratio)], 
+        #     size=self.cfg.TRAINING.batchSize, replace=False)
+        mmwave_cfg = batch['mmwave_cfg']#[random_indices]
+        keypoints = batch['jointsGroup']#[random_indices]
+        VRDAEmaps_hori = batch['VRDAEmap_hori'].float()#[random_indices].float()
+        VRDAEmaps_vert = batch['VRDAEmap_vert'].float()#[random_indices].float()
         preds = self.model(VRDAEmaps_hori, VRDAEmaps_vert, mmwave_cfg)
         loss, loss2, _, _ = self.lossComputer.computeLoss(preds, keypoints)
-        self.log('train_loss/loss', loss, on_step=True, on_epoch=False, prog_bar=False, logger=True, sync_dist=True)
-        self.log('train_loss/loss2', loss2, on_step=True, on_epoch=False, prog_bar=False, logger=True, sync_dist=True)
+        self.log('train_loss/loss', loss, on_step=True, on_epoch=False, prog_bar=False, logger=True)
+        self.log('train_loss/loss2', loss2, on_step=True, on_epoch=False, prog_bar=False, logger=True)
         # print info
         num_iter = len(self.trainer.train_dataloader)
         self.print('epoch {0:04d}, iter {1:04d} / {2:04d} | TOTAL loss: {3:0>10.4f}'. \
@@ -57,15 +60,14 @@ class MInterface(pl.LightningModule):
         return loss
 
     def validation_step(self, batch, batch_idx):
-        imageId = batch['imageId']
-        mmwave_cfg = batch['mmwave_cfg']
-        keypoints = batch['jointsGroup']
-        VRDAEmaps_hori = batch['VRDAEmap_hori'].float().to(self.device)
-        VRDAEmaps_vert = batch['VRDAEmap_vert'].float().to(self.device)
+        mmwave_cfg = batch['mmwave_cfg']#[: self.cfg.TRAINING.batchSize]
+        keypoints = batch['jointsGroup']#[: self.cfg.TRAINING.batchSize]
+        VRDAEmaps_hori = batch['VRDAEmap_hori'].float()#[: self.cfg.TRAINING.batchSize].float()
+        VRDAEmaps_vert = batch['VRDAEmap_vert'].float()#[: self.cfg.TRAINING.batchSize].float()
         preds = self.model(VRDAEmaps_hori, VRDAEmaps_vert, mmwave_cfg)
         loss, loss2, preds, gts = self.lossComputer.computeLoss(preds, keypoints)
-        self.log('validation_loss/loss', loss, on_step=False, on_epoch=True, prog_bar=False, logger=True, sync_dist=True)
-        self.log('validation_loss/loss2', loss2, on_step=False, on_epoch=True, prog_bar=False, logger=True, sync_dist=True)
+        self.log('validation_loss/loss', loss, on_step=False, on_epoch=True, prog_bar=False, logger=True)
+        self.log('validation_loss/loss2', loss2, on_step=False, on_epoch=True, prog_bar=False, logger=True)
         # print info
         num_iter = len(self.trainer.val_dataloaders)
         self.print('\033[93m' + 'epoch {0:04d}, iter {1:04d} / {2:04d} | TOTAL loss: {3:0>10.4f}'. \
@@ -74,11 +76,12 @@ class MInterface(pl.LightningModule):
 
     def test_step(self, batch, batch_idx):
         # bbox = batch['bbox']
-        imageId = batch['imageId']
-        keypoints = batch['jointsGroup']
-        VRDAEmaps_hori = batch['VRDAEmap_hori'].float().to(self.device)
-        VRDAEmaps_vert = batch['VRDAEmap_vert'].float().to(self.device)
-        preds = self.model(VRDAEmaps_hori, VRDAEmaps_vert)
+        imageId = batch['imageId']#[: self.cfg.TRAINING.batchSize]
+        mmwave_cfg = batch['mmwave_cfg']#[: self.cfg.TRAINING.batchSize]
+        keypoints = batch['jointsGroup']#[: self.cfg.TRAINING.batchSize]
+        VRDAEmaps_hori = batch['VRDAEmap_hori'].float()#[: self.cfg.TRAINING.batchSize].float()
+        VRDAEmaps_vert = batch['VRDAEmap_vert'].float()#[: self.cfg.TRAINING.batchSize].float()
+        preds = self.model(VRDAEmaps_hori, VRDAEmaps_vert, mmwave_cfg)
         _, _, preds2d, keypoints2d = self.lossComputer.computeLoss(preds, keypoints)
         # print info
         num_iter = len(self.trainer.test_dataloaders)
@@ -110,9 +113,9 @@ class MInterface(pl.LightningModule):
         else: 
             LR = self.cfg.TRAINING.lr / (self.cfg.TRAINING.warmupGrowth ** self.stepSize)
         if self.cfg.TRAINING.optimizer == 'sgd':
-            optimizer = optim.SGD(self.model.parameters(), lr=LR, momentum=0.9, weight_decay=1e-4)
+            optimizer = optim.SGD(self.model.parameters(), lr=LR, momentum=0.90, weight_decay=1e-4)
         elif self.cfg.TRAINING.optimizer == 'adam':  
-            optimizer = optim.Adam(self.model.parameters(), lr=LR, betas=(0.9, 0.999), weight_decay=1e-4)
+            optimizer = optim.Adam(self.model.parameters(), lr=LR, betas=(0.99, 0.999), weight_decay=1e-4)
         # Scheduler
         scheduler = optim.lr_scheduler.LambdaLR(optimizer, self.lr_lambda)
         return {"optimizer": optimizer, "lr_scheduler": {"scheduler": scheduler}}
@@ -131,10 +134,10 @@ class MInterface(pl.LightningModule):
         self.lossComputer = LossComputer(self.cfg, self.device)
         return
 
-    def load_model(self, module: nn.Module, model_dict: dict, model_state_dict: dict=None) -> nn.Module:
-        self.model: nn.Module = module(model_dict)
-        if model_state_dict is not None:
-            self.model.load_state_dict(model_state_dict)
+    def load_model(self, module: nn.Module, cfg: dict) -> nn.Module:
+        self.model: nn.Module = module(cfg)
+        if self.cfg.MODEL.preLoad:
+            self.model.load_state_dict(torch.load(self.cfg.MODEL.weightPath), strict=True)
             
     def writeKeypoints(self, preds):
         predFile = os.path.join(self.cfg.DATASET.logDir, self.args.version, "test_results.json" if self.args.eval else "val_results.json")

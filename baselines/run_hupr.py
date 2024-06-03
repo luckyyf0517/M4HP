@@ -33,7 +33,7 @@ if __name__ == "__main__":
     args = parse_arg()
     
     model = MInterface(HuPRNet, args, cfg)
-    data = DInterface(batch_size=cfg.TRAINING.batchSize, num_workers=cfg.SETUP.numWorkers, dataset=HuPR3D_raw, dataset_dict={'cfg': cfg, 'args': args})
+    data = DInterface(batch_size=cfg.TRAINING.batchSize * args.sampling_ratio, num_workers=cfg.SETUP.numWorkers, dataset=HuPR3D_raw, cfg=cfg, args=args)
     
     # Checkpoint callback
     checkpoint_callback = ModelCheckpoint(
@@ -55,12 +55,12 @@ if __name__ == "__main__":
         default_root_dir=args.version,
         strategy="ddp",
         logger=logger,
-        log_every_n_steps=1,
+        log_every_n_steps=False,
         enable_progress_bar=False,
         reload_dataloaders_every_n_epochs=False,
         callbacks=[checkpoint_callback], 
         num_sanity_val_steps=0,
-        use_distributed_sampler=False,
+        # use_distributed_sampler=False,
         )
 
     if args.eval:
