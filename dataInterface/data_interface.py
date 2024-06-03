@@ -13,12 +13,15 @@
 # limitations under the License.
 
 import yaml
+import random
 import inspect
 import importlib
 import pickle as pkl
 import pytorch_lightning as pl
+from copy import deepcopy
 import torch
-from torch.utils.data import DataLoader, ConcatDataset, Sampler, DistributedSampler
+from torch.utils.data import DataLoader, DistributedSampler
+import torch.distributed as dist
 
 
 class DInterface(pl.LightningDataModule):
@@ -44,33 +47,75 @@ class DInterface(pl.LightningDataModule):
         return self.Dataset(phase=stage, **self.dataset_dict)
 
     def train_dataloader(self):
-        return DataLoader(self.train_set, batch_size=self.batch_size, num_workers=self.num_workers, shuffle=True)
+        sampler = SubsetShuffleSampler(self.train_set.keyimageIds)
+        return DataLoader(
+            self.train_set, 
+            batch_size=self.batch_size,
+            num_workers=self.num_workers, 
+            sampler=sampler,
+            persistent_workers=True, 
+            pin_memory=True)
 
     def val_dataloader(self):
-        return DataLoader(self.val_set, batch_size=self.batch_size, num_workers=self.num_workers, shuffle=False)
+        sampler = SubsetShuffleSampler(self.val_set.keyimageIds, shuffle=False)
+        return DataLoader(
+            self.val_set, 
+            batch_size=self.batch_size, 
+            num_workers=self.num_workers, 
+            sampler=sampler,
+            persistent_workers=True, 
+            pin_memory=True)
 
     def test_dataloader(self):
-        return DataLoader(self.test_set, batch_size=self.batch_size, num_workers=self.num_workers, shuffle=False)
+        sampler = SubsetShuffleSampler(self.test_set.keyimageIds, shuffle=False)
+        return DataLoader(
+            self.test_set, 
+            batch_size=self.batch_size, 
+            num_workers=self.num_workers, 
+            sampler=sampler,
+            prefetch_factor=5,
+            pin_memory=True)
 
     def load_data_module(self, dataset, dataset_dict):
         self.Dataset = dataset
         self.dataset_dict = dataset_dict
         
 
-class SubsetSampler(Sampler):
-    def __init__(self, dataset_sizes, shuffle=False):
-        self.dataset_sizes = dataset_sizes
-        self.indices = []
-        current_indice = 0
-        for dataset_size in dataset_sizes:
-            if shuffle:
-                self.indices.extend(torch.randperm(dataset_size) + current_indice)
-            else:
-                self.indices.extend(torch.arange(dataset_size) + current_indice)
-            current_indice += dataset_size
+class SubsetShuffleSampler(DistributedSampler):
+    def __init__(self, image_ids, shuffle=True):
+        super().__init__(deepcopy(image_ids)) # compute self.total_size and self.num_replicas
+        random_idx_pair = [i for i in enumerate(deepcopy(image_ids))]
+        
+        print(f"=========== init sampler with {len(image_ids)} samples =============")
+        if shuffle: 
+            random.shuffle(random_idx_pair)
+        
+        length_map = {}
+        for index, name in random_idx_pair: 
+            imageId = '%09d' % name
+            seq_name = imageId[: 4]
+            if seq_name not in length_map: 
+                length_map[seq_name] = [index]
+            else: 
+                length_map[seq_name].append(index)
+                
+        random_idx = []
+        for seq_name in length_map: 
+            random_idx += length_map[seq_name]
+        self.indices = random_idx
 
     def __iter__(self):
-        return iter(self.indices)
+        # subsample
+        if self.rank != self.num_replicas - 1:
+            indices = deepcopy(self.indices[self.rank * self.total_size// self.num_replicas: (self.rank + 1) * self.total_size// self.num_replicas])
+        else:
+            indices = self.indices[self.rank * self.total_size// self.num_replicas: ]
+        try:
+            assert len(self)==len(indices)
+        except:
+            raise ValueError(f"{len(self), len(indices), len(self.indices), self.rank}")
+        return iter(indices)
 
     def __len__(self):
-        return len(self.indices)
+        return self.total_size // self.num_replicas
+    

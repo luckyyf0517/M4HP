@@ -40,12 +40,8 @@ class MInterface(pl.LightningModule):
 
     def forward(self, x):
         return self.model(**x)
-
-    def on_train_epoch_start(self):
-        print("on_epoch_start")
-
+    
     def training_step(self, batch, batch_idx):
-        print('in train')
         keypoints = batch['jointsGroup']
         VRDAEmaps_hori = batch['VRDAEmap_hori'].float()
         VRDAEmaps_vert = batch['VRDAEmap_vert'].float()
@@ -75,7 +71,7 @@ class MInterface(pl.LightningModule):
         return loss
 
     def test_step(self, batch, batch_idx):
-        bbox = batch['bbox']
+        # bbox = batch['bbox']
         imageId = batch['imageId']
         keypoints = batch['jointsGroup']
         VRDAEmaps_hori = batch['VRDAEmap_hori'].float().to(self.device)
@@ -86,7 +82,7 @@ class MInterface(pl.LightningModule):
         num_iter = len(self.trainer.test_dataloaders)
         self.print('\033[93m' + 'batch {0:04d} / {1:04d}'.format(batch_idx, num_iter) + '\033[0m')
         # draw with GT
-        plotHumanPose(preds2d * self.cfg.DATASET.imgHeatmapRatio, imageIdx=imageId, bbox=bbox, cfg=self.cfg, visDir=self.args.visDir)
+        plotHumanPose(preds2d * self.cfg.DATASET.imgHeatmapRatio, imageIdx=imageId, bbox=None, cfg=self.cfg, visDir=self.args.visDir)
         # evaluation (by method in dataset)
         # savePreds = self.saveKeypoints(preds2d * self.cfg.DATASET.imgHeatmapRatio, bbox, imageId)
         # self.writeKeypoints(savePreds)
@@ -95,8 +91,6 @@ class MInterface(pl.LightningModule):
         return
     
     def on_train_end(self):
-        print('end')
-        exit()
         return 
     
     def on_validation_epoch_end(self):
