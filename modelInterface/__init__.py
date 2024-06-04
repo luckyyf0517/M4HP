@@ -12,4 +12,4 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from .model_interface import MInterface
+from .model_interface_hupr import MInterfaceHuPR

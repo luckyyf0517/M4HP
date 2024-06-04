@@ -12,14 +12,14 @@ import yaml
 import torch
 import torchvision
 
-from modelInterface.model_interface import MInterface
+from modelInterface.model_interface_hupr import MInterfaceHuPR
 from dataInterface.data_interface import DInterface
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.loggers import TensorBoardLogger
 
 from HuPR.models.networks import HuPRNet
-from HuPR.datasets.dataset import HuPR3D_horivert, HuPR3D_raw
+from HuPR.datasets.dataset import HuPR3D_raw
 from HuPR.main import obj, parse_arg
 
 torch.set_float32_matmul_precision('high')
@@ -32,7 +32,7 @@ if __name__ == "__main__":
         cfg = yaml.safe_load(f)
         cfg = obj(cfg)
     
-    model = MInterface(HuPRNet, args, cfg)
+    model = MInterfaceHuPR(HuPRNet, args, cfg)
     data = DInterface(batch_size=cfg.TRAINING.batchSize, num_workers=cfg.SETUP.numWorkers, dataset=HuPR3D_raw, cfg=cfg, args=args)
     
     # Checkpoint callback
@@ -60,7 +60,7 @@ if __name__ == "__main__":
         reload_dataloaders_every_n_epochs=False,
         callbacks=[checkpoint_callback], 
         num_sanity_val_steps=0,
-        # use_distributed_sampler=False,
+        use_distributed_sampler=False,
         )
 
     if args.eval:

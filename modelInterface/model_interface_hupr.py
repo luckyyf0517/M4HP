@@ -28,7 +28,7 @@ from baselines.HuPR.misc.losses import LossComputer
 from baselines.HuPR.misc.plot import plotHumanPose
 
 
-class MInterface(pl.LightningModule):
+class MInterfaceHuPR(pl.LightningModule):
     def __init__(self, module: nn.Module, args, cfg, **kwargs):
         super().__init__()
         self.save_hyperparameters()
@@ -41,14 +41,17 @@ class MInterface(pl.LightningModule):
     def forward(self, x):
         return self.model(x)
     
+    def on_test_start(self):
+        self.save_preds = []
+    
     def training_step(self, batch, batch_idx):
         # random_indices = np.random.choice(
         #     [i for i in range(self.cfg.TRAINING.batchSize * self.args.sampling_ratio)], 
         #     size=self.cfg.TRAINING.batchSize, replace=False)
-        mmwave_cfg = batch['mmwave_cfg']#[random_indices]
-        keypoints = batch['jointsGroup']#[random_indices]
-        VRDAEmaps_hori = batch['VRDAEmap_hori']#[random_indices].float()
-        VRDAEmaps_vert = batch['VRDAEmap_vert']#[random_indices].float()
+        mmwave_cfg = batch['mmwave_cfg']
+        keypoints = batch['jointsGroup']
+        VRDAEmaps_hori = batch['VRDAEmap_hori']
+        VRDAEmaps_vert = batch['VRDAEmap_vert']
         preds = self.model(VRDAEmaps_hori, VRDAEmaps_vert, mmwave_cfg)
         loss, loss2, _, _ = self.lossComputer.computeLoss(preds, keypoints)
         self.log('train_loss/loss', loss, on_step=True, on_epoch=False, prog_bar=False, logger=True)
@@ -60,10 +63,10 @@ class MInterface(pl.LightningModule):
         return loss
 
     def validation_step(self, batch, batch_idx):
-        mmwave_cfg = batch['mmwave_cfg']#[: self.cfg.TRAINING.batchSize]
-        keypoints = batch['jointsGroup']#[: self.cfg.TRAINING.batchSize]
-        VRDAEmaps_hori = batch['VRDAEmap_hori']#[: self.cfg.TRAINING.batchSize].float()
-        VRDAEmaps_vert = batch['VRDAEmap_vert']#[: self.cfg.TRAINING.batchSize].float()
+        mmwave_cfg = batch['mmwave_cfg']
+        keypoints = batch['jointsGroup']
+        VRDAEmaps_hori = batch['VRDAEmap_hori']
+        VRDAEmaps_vert = batch['VRDAEmap_vert']
         preds = self.model(VRDAEmaps_hori, VRDAEmaps_vert, mmwave_cfg)
         loss, loss2, preds, gts = self.lossComputer.computeLoss(preds, keypoints)
         self.log('validation_loss/loss', loss, on_step=False, on_epoch=True, prog_bar=False, logger=True)
@@ -75,12 +78,12 @@ class MInterface(pl.LightningModule):
         return loss
 
     def test_step(self, batch, batch_idx):
-        # bbox = batch['bbox']
-        imageId = batch['imageId']#[: self.cfg.TRAINING.batchSize]
-        mmwave_cfg = batch['mmwave_cfg']#[: self.cfg.TRAINING.batchSize]
-        keypoints = batch['jointsGroup']#[: self.cfg.TRAINING.batchSize]
-        VRDAEmaps_hori = batch['VRDAEmap_hori']#[: self.cfg.TRAINING.batchSize].float()
-        VRDAEmaps_vert = batch['VRDAEmap_vert']#[: self.cfg.TRAINING.batchSize].float()
+        bbox = batch['bbox']
+        imageId = batch['imageId']
+        mmwave_cfg = batch['mmwave_cfg']
+        keypoints = batch['jointsGroup']
+        VRDAEmaps_hori = batch['VRDAEmap_hori']
+        VRDAEmaps_vert = batch['VRDAEmap_vert']
         preds = self.model(VRDAEmaps_hori, VRDAEmaps_vert, mmwave_cfg)
         _, _, preds2d, keypoints2d = self.lossComputer.computeLoss(preds, keypoints)
         # print info
@@ -89,11 +92,7 @@ class MInterface(pl.LightningModule):
         # draw with GT
         plotHumanPose(preds2d * self.cfg.DATASET.imgHeatmapRatio, imageIdx=imageId, bbox=None, cfg=self.cfg, visDir=self.args.visDir)
         # evaluation (by method in dataset)
-        # savePreds = self.saveKeypoints(preds2d * self.cfg.DATASET.imgHeatmapRatio, bbox, imageId)
-        # self.writeKeypoints(savePreds)
-        # accAP = self.trainer.test_dataloaders.dataset.evaluateEach(loadDir=os.path.join('/root/log', self.args.version))
-        # self.log('test_acc/AP', accAP, on_step=False, on_epoch=True, prog_bar=False, logger=True, sync_dist_group=True)
-        return
+        self.save_preds += self.saveKeypoints(preds2d * self.cfg.DATASET.imgHeatmapRatio, bbox, imageId)
     
     def on_train_end(self):
         return 
@@ -102,8 +101,15 @@ class MInterface(pl.LightningModule):
         return
 
     def on_test_epoch_end(self):
-        return 
-
+        self.writeKeypoints(self.save_preds)
+        accAPs = self.trainer.test_dataloaders.dataset.evaluateEach(loadDir=os.path.join('/root/log', self.args.version))
+        for jointName, accAP in zip(self.cfg.DATASET.idxToJoints, accAPs):
+            self.log('test_ap/' + jointName, accAP, on_step=False, on_epoch=True, prog_bar=False, logger=True, sync_dist_group=True)
+        accAP = self.trainer.test_dataloaders.dataset.evaluate(loadDir=os.path.join('/root/log', self.args.version))
+        self.log('test_ap/AP', accAP['AP'], on_step=False, on_epoch=True, prog_bar=False, logger=True, sync_dist_group=True)
+        self.log('test_ap/Ap .5', accAP['AP .5'], on_step=False, on_epoch=True, prog_bar=False, logger=True, sync_dist_group=True)
+        self.log('test_ap/Ap .75', accAP['AP .75'], on_step=False, on_epoch=True, prog_bar=False, logger=True, sync_dist_group=True)
+        
     def configure_optimizers(self):
         # Optimizer
         self.stepSize = self.cfg.TRAINING.warmupEpoch
@@ -146,16 +152,14 @@ class MInterface(pl.LightningModule):
             json.dump(preds, fp)
     
     def saveKeypoints(self, preds, bbox, image_id, predHeatmap=None):
-        
         savePreds = []
         visidx = np.ones((len(preds), self.cfg.DATASET.numKeypoints, 1))
         preds = np.concatenate((preds, visidx), axis=2)
         predsigma = np.zeros((len(preds), self.cfg.DATASET.numKeypoints))
-        
         for j in range(len(preds)):
             block = {}
             block["category_id"] = 1
-            block["image_id"] = image_id[j].item()
+            block["image_id"] = int(image_id[j])
             block["score"] = 1.0
             block["keypoints"] = preds[j].reshape(self.cfg.DATASET.numKeypoints*3).tolist()
             if predHeatmap is not None:

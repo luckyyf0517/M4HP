@@ -50,75 +50,64 @@ class DInterface(pl.LightningDataModule):
         return self.Dataset(phase=stage, cfg=self.cfg, args=self.args)
 
     def train_dataloader(self):
-        # sampler = SubsetShuffleSampler(self.train_set.keyimageIds)
+        sampler = SubsetShuffleSampler(self.train_set, shuffle=True)
         return DataLoader(
             self.train_set, 
             batch_size=self.batch_size,
             num_workers=self.num_workers, 
-            shuffle=True, 
-            # sampler=sampler,
+            # shuffle=True, 
+            sampler=sampler,
             persistent_workers=True, 
             pin_memory=True)
 
     def val_dataloader(self):
-        # sampler = SubsetShuffleSampler(self.val_set.keyimageIds, shuffle=False)
+        sampler = SubsetShuffleSampler(self.val_set, shuffle=False)
         return DataLoader(
             self.val_set, 
             batch_size=self.batch_size, 
             num_workers=self.num_workers, 
-            shuffle=False, 
-            # sampler=sampler,
+            # shuffle=False, 
+            sampler=sampler,
             persistent_workers=True, 
             pin_memory=True)
 
     def test_dataloader(self):
-        # sampler = SubsetShuffleSampler(self.test_set.keyimageIds, shuffle=False)
+        sampler = SubsetShuffleSampler(self.test_set, shuffle=False)
         return DataLoader(
             self.test_set, 
             batch_size=self.batch_size, 
             num_workers=self.num_workers, 
-            shuffle=False, 
-            # sampler=sampler,
+            # shuffle=False, 
+            sampler=sampler,
             pin_memory=True)
 
     def load_data_module(self, dataset):
         self.Dataset = dataset
         
 
-# class SubsetShuffleSampler(DistributedSampler):
-#     def __init__(self, image_ids, shuffle=True):
-#         super().__init__(deepcopy(image_ids)) # compute self.total_size and self.num_replicas
-#         random_idx_pair = [i for i in enumerate(deepcopy(image_ids))]
-        
-#         if shuffle: 
-#             random.shuffle(random_idx_pair)
-        
-#         length_map = {}
-#         for index, name in random_idx_pair: 
-#             imageId = '%09d' % name
-#             seq_name = imageId[: 4]
-#             if seq_name not in length_map: 
-#                 length_map[seq_name] = [index]
-#             else: 
-#                 length_map[seq_name].append(index)
-                
-#         random_idx = []
-#         for seq_name in length_map: 
-#             random_idx += length_map[seq_name]
-#         self.indices = random_idx
+class SubsetShuffleSampler(DistributedSampler):
+    def __init__(self, dataset, shuffle=True):
+        super().__init__(deepcopy(dataset)) # compute self.total_size and self.num_replicas
+        self.shuffle = shuffle
+        self.indices = [i for i in range(len(dataset))]
 
-#     def __iter__(self):
-#         # subsample
-#         if self.rank != self.num_replicas - 1:
-#             indices = deepcopy(self.indices[self.rank * self.total_size// self.num_replicas: (self.rank + 1) * self.total_size// self.num_replicas])
-#         else:
-#             indices = self.indices[self.rank * self.total_size// self.num_replicas: ]
-#         try:
-#             assert len(self)==len(indices)
-#         except:
-#             raise ValueError(f"{len(self), len(indices), len(self.indices), self.rank}")
-#         return iter(indices)
+    def __iter__(self):
+        # split the indices for each gpu
+        if self.rank != self.num_replicas - 1:
+            indices = self.indices[self.rank * self.total_size // self.num_replicas: (self.rank + 1) * self.total_size// self.num_replicas]
+        else:
+            indices = self.indices[self.rank * self.total_size // self.num_replicas: ]
+        
+        try:
+            assert len(self)==len(indices)
+        except:
+            raise ValueError(f"Length not corresponding: {len(self), len(indices), len(self.indices), self.rank}")
+        
+        if self.shuffle: 
+            random.shuffle(indices)
+        
+        return iter(indices)
 
-#     def __len__(self):
-#         return self.total_size // self.num_replicas
+    def __len__(self):
+        return self.total_size // self.num_replicas
     
