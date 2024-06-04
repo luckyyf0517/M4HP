@@ -18,7 +18,7 @@ from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.loggers import TensorBoardLogger
 
-from HuPR.models import HuPRNet
+from HuPR.models.networks import HuPRNet
 from HuPR.datasets.dataset import HuPR3D_horivert, HuPR3D_raw
 from HuPR.main import obj, parse_arg
 
@@ -27,13 +27,13 @@ torch.set_float32_matmul_precision('high')
 
 if __name__ == "__main__":
 
-    with open('./baselines/HuPR/config/mscsa_prgcn_demo.yaml', 'r') as f:
+    args = parse_arg()
+    with open('./baselines/HuPR/config/' + args.config, 'r') as f:
         cfg = yaml.safe_load(f)
         cfg = obj(cfg)
-    args = parse_arg()
     
     model = MInterface(HuPRNet, args, cfg)
-    data = DInterface(batch_size=cfg.TRAINING.batchSize * args.sampling_ratio, num_workers=cfg.SETUP.numWorkers, dataset=HuPR3D_raw, cfg=cfg, args=args)
+    data = DInterface(batch_size=cfg.TRAINING.batchSize, num_workers=cfg.SETUP.numWorkers, dataset=HuPR3D_raw, cfg=cfg, args=args)
     
     # Checkpoint callback
     checkpoint_callback = ModelCheckpoint(
@@ -55,7 +55,7 @@ if __name__ == "__main__":
         default_root_dir=args.version,
         strategy="ddp",
         logger=logger,
-        log_every_n_steps=False,
+        log_every_n_steps=1,
         enable_progress_bar=False,
         reload_dataloaders_every_n_epochs=False,
         callbacks=[checkpoint_callback], 

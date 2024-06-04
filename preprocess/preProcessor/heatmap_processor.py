@@ -42,6 +42,7 @@ class HeatmapProcessor(PreProcessor):
         # data_out_vert = np.zeros((self.radar.num_frames, 16, 64, 64, 8), dtype=np.complex_)
         for idx_frame in tqdm(range(self.radar.num_frames)): 
             data_frame_hori = data_complex_hori[idx_frame]
+            print(data_frame_hori.sum(), data_frame_hori.shape)
             # data_frame_vert = data_complex_vert[idx_frame]
             cube_frame_hori = to_numpy(self.process_data_frame(data_frame_hori))
             # cube_frame_vert = to_numpy(self.process_data_frame(data_frame_vert))
@@ -53,7 +54,7 @@ class HeatmapProcessor(PreProcessor):
             # data_out_vert[idx_frame, :, :, :, :] = cube_frame_vert
             exit()
         self.save_all_data(data_out_hori, 'hori', target_dir=target_path_folder)
-        self.save_all_data(data_out_vert, 'vert', target_dir=target_path_folder)
+        # self.save_all_data(data_out_vert, 'vert', target_dir=target_path_folder)
         
     def process_data_frame(self, data_frame):
         radar_data_8rx, radar_data_4rx = self.radar.parse_data(data_frame)

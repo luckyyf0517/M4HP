@@ -32,7 +32,7 @@ class AnnotationProcessor(PreProcessor):
                         if 'skeleton' in src_frame: 
                             break
                         try_frame += 1
-                    assert try_frame - int(idx_frame) < 10, 'No skeleton found for frame %s' % idx_frame
+                    assert try_frame - int(idx_frame) < 30, 'No skeleton found for frame %s' % idx_frame
                 
                 for point in src_frame['skeleton']['joints2D']: 
                     xs.append(point['position']['x'])

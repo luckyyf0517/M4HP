@@ -47,8 +47,8 @@ class MInterface(pl.LightningModule):
         #     size=self.cfg.TRAINING.batchSize, replace=False)
         mmwave_cfg = batch['mmwave_cfg']#[random_indices]
         keypoints = batch['jointsGroup']#[random_indices]
-        VRDAEmaps_hori = batch['VRDAEmap_hori'].float()#[random_indices].float()
-        VRDAEmaps_vert = batch['VRDAEmap_vert'].float()#[random_indices].float()
+        VRDAEmaps_hori = batch['VRDAEmap_hori']#[random_indices].float()
+        VRDAEmaps_vert = batch['VRDAEmap_vert']#[random_indices].float()
         preds = self.model(VRDAEmaps_hori, VRDAEmaps_vert, mmwave_cfg)
         loss, loss2, _, _ = self.lossComputer.computeLoss(preds, keypoints)
         self.log('train_loss/loss', loss, on_step=True, on_epoch=False, prog_bar=False, logger=True)
@@ -62,8 +62,8 @@ class MInterface(pl.LightningModule):
     def validation_step(self, batch, batch_idx):
         mmwave_cfg = batch['mmwave_cfg']#[: self.cfg.TRAINING.batchSize]
         keypoints = batch['jointsGroup']#[: self.cfg.TRAINING.batchSize]
-        VRDAEmaps_hori = batch['VRDAEmap_hori'].float()#[: self.cfg.TRAINING.batchSize].float()
-        VRDAEmaps_vert = batch['VRDAEmap_vert'].float()#[: self.cfg.TRAINING.batchSize].float()
+        VRDAEmaps_hori = batch['VRDAEmap_hori']#[: self.cfg.TRAINING.batchSize].float()
+        VRDAEmaps_vert = batch['VRDAEmap_vert']#[: self.cfg.TRAINING.batchSize].float()
         preds = self.model(VRDAEmaps_hori, VRDAEmaps_vert, mmwave_cfg)
         loss, loss2, preds, gts = self.lossComputer.computeLoss(preds, keypoints)
         self.log('validation_loss/loss', loss, on_step=False, on_epoch=True, prog_bar=False, logger=True)
@@ -79,8 +79,8 @@ class MInterface(pl.LightningModule):
         imageId = batch['imageId']#[: self.cfg.TRAINING.batchSize]
         mmwave_cfg = batch['mmwave_cfg']#[: self.cfg.TRAINING.batchSize]
         keypoints = batch['jointsGroup']#[: self.cfg.TRAINING.batchSize]
-        VRDAEmaps_hori = batch['VRDAEmap_hori'].float()#[: self.cfg.TRAINING.batchSize].float()
-        VRDAEmaps_vert = batch['VRDAEmap_vert'].float()#[: self.cfg.TRAINING.batchSize].float()
+        VRDAEmaps_hori = batch['VRDAEmap_hori']#[: self.cfg.TRAINING.batchSize].float()
+        VRDAEmaps_vert = batch['VRDAEmap_vert']#[: self.cfg.TRAINING.batchSize].float()
         preds = self.model(VRDAEmaps_hori, VRDAEmaps_vert, mmwave_cfg)
         _, _, preds2d, keypoints2d = self.lossComputer.computeLoss(preds, keypoints)
         # print info
@@ -115,7 +115,7 @@ class MInterface(pl.LightningModule):
         if self.cfg.TRAINING.optimizer == 'sgd':
             optimizer = optim.SGD(self.model.parameters(), lr=LR, momentum=0.90, weight_decay=1e-4)
         elif self.cfg.TRAINING.optimizer == 'adam':  
-            optimizer = optim.Adam(self.model.parameters(), lr=LR, betas=(0.99, 0.999), weight_decay=1e-4)
+            optimizer = optim.AdamW(self.model.parameters(), lr=LR, betas=(0.99, 0.999), weight_decay=1e-4)
         # Scheduler
         scheduler = optim.lr_scheduler.LambdaLR(optimizer, self.lr_lambda)
         return {"optimizer": optimizer, "lr_scheduler": {"scheduler": scheduler}}
@@ -137,7 +137,8 @@ class MInterface(pl.LightningModule):
     def load_model(self, module: nn.Module, cfg: dict) -> nn.Module:
         self.model: nn.Module = module(cfg)
         if self.cfg.MODEL.preLoad:
-            self.model.load_state_dict(torch.load(self.cfg.MODEL.weightPath), strict=True)
+            print('Loading model dict from ' + self.cfg.MODEL.weightPath)
+            self.model.load_state_dict(torch.load(self.cfg.MODEL.weightPath)['model_state_dict'], strict=True)
             
     def writeKeypoints(self, preds):
         predFile = os.path.join(self.cfg.DATASET.logDir, self.args.version, "test_results.json" if self.args.eval else "val_results.json")

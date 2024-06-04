@@ -55,6 +55,7 @@ class DInterface(pl.LightningDataModule):
             self.train_set, 
             batch_size=self.batch_size,
             num_workers=self.num_workers, 
+            shuffle=True, 
             # sampler=sampler,
             persistent_workers=True, 
             pin_memory=True)
@@ -65,6 +66,7 @@ class DInterface(pl.LightningDataModule):
             self.val_set, 
             batch_size=self.batch_size, 
             num_workers=self.num_workers, 
+            shuffle=False, 
             # sampler=sampler,
             persistent_workers=True, 
             pin_memory=True)
@@ -75,6 +77,7 @@ class DInterface(pl.LightningDataModule):
             self.test_set, 
             batch_size=self.batch_size, 
             num_workers=self.num_workers, 
+            shuffle=False, 
             # sampler=sampler,
             pin_memory=True)
 
