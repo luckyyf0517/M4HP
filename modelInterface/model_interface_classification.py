@@ -60,7 +60,6 @@ class MInterfaceHuPRClassification(pl.LightningModule):
         VRDAEmaps_hori = batch['VRDAEmap_hori']
         VRDAEmaps_vert = batch['VRDAEmap_vert']
         preds = self.model(VRDAEmaps_hori, VRDAEmaps_vert, mmwave_cfg)
-        from IPython import embed; embed()
         loss = self.compute_loss(preds, labels)
         self.log('train_loss/loss', loss, on_step=True, on_epoch=False, prog_bar=False, logger=True)
         # print info
@@ -141,7 +140,7 @@ class MInterfaceHuPRClassification(pl.LightningModule):
             return 1
 
     def compute_loss(self, preds, labels):
-        return nn.functional.cross_entropy(preds, labels.to(preds.device))
+        return nn.functional.cross_entropy(preds, labels)
 
     def load_model(self, cfg: dict) -> nn.Module:
         assert cfg.MODEL.runClassification is True, "This model is for classification task only."
