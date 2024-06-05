@@ -39,7 +39,7 @@ if __name__ == "__main__":
     checkpoint_callback = ModelCheckpoint(
         monitor='epoch',
         filename='{epoch:02d}',
-        save_top_k=1,
+        save_top_k=-1,
         mode='max',
         save_last=True,
         save_weights_only=False,

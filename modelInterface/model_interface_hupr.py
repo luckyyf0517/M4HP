@@ -90,7 +90,7 @@ class MInterfaceHuPR(pl.LightningModule):
         num_iter = len(self.trainer.test_dataloaders)
         self.print('\033[93m' + 'batch {0:04d} / {1:04d}'.format(batch_idx, num_iter) + '\033[0m')
         # draw with GT
-        plotHumanPose(preds2d * self.cfg.DATASET.imgHeatmapRatio, imageIdx=imageId, bbox=None, cfg=self.cfg, visDir=self.args.visDir)
+        plotHumanPose(preds2d * self.cfg.DATASET.imgHeatmapRatio, imageIdx=imageId, cfg=self.cfg, visDir=os.path.join(self.args.visDir, self.args.version))
         # evaluation (by method in dataset)
         self.save_preds += self.saveKeypoints(preds2d * self.cfg.DATASET.imgHeatmapRatio, bbox, imageId)
     
@@ -98,17 +98,24 @@ class MInterfaceHuPR(pl.LightningModule):
         return 
     
     def on_validation_epoch_end(self):
+        self.compute_evaluate_metrics('val')
         return
 
     def on_test_epoch_end(self):
-        self.writeKeypoints(self.save_preds)
-        accAPs = self.trainer.test_dataloaders.dataset.evaluateEach(loadDir=os.path.join('/root/log', self.args.version))
+        self.compute_evaluate_metrics('test')
+        return
+        
+    def compute_evaluate_metrics(self, phase='test'): 
+        
+        self.writeKeypoints(phase=phase)
+        accAPs = self.trainer.test_dataloaders.dataset.evaluateEach(loadDir=os.path.join('/root/log', self.args.version), rank=self.global_rank)
         for jointName, accAP in zip(self.cfg.DATASET.idxToJoints, accAPs):
-            self.log('test_ap/' + jointName, accAP, on_step=False, on_epoch=True, prog_bar=False, logger=True, sync_dist_group=True)
-        accAP = self.trainer.test_dataloaders.dataset.evaluate(loadDir=os.path.join('/root/log', self.args.version))
-        self.log('test_ap/AP', accAP['AP'], on_step=False, on_epoch=True, prog_bar=False, logger=True, sync_dist_group=True)
-        self.log('test_ap/Ap .5', accAP['AP .5'], on_step=False, on_epoch=True, prog_bar=False, logger=True, sync_dist_group=True)
-        self.log('test_ap/Ap .75', accAP['AP .75'], on_step=False, on_epoch=True, prog_bar=False, logger=True, sync_dist_group=True)
+            self.log(phase + '_ap/' + jointName, accAP, on_step=False, on_epoch=True, prog_bar=False, logger=True, sync_dist_group=True)
+        
+        accAP = self.trainer.test_dataloaders.dataset.evaluate(loadDir=os.path.join('/root/log', self.args.version), rank=self.global_rank)
+        self.log(phase + '_ap/AP', accAP['AP'], on_step=False, on_epoch=True, prog_bar=False, logger=True, sync_dist_group=True)
+        self.log(phase + '_ap/Ap .5', accAP['AP .5'], on_step=False, on_epoch=True, prog_bar=False, logger=True, sync_dist_group=True)
+        self.log(phase + '_ap/Ap .75', accAP['AP .75'], on_step=False, on_epoch=True, prog_bar=False, logger=True, sync_dist_group=True)
         
     def configure_optimizers(self):
         # Optimizer
@@ -146,10 +153,10 @@ class MInterfaceHuPR(pl.LightningModule):
             print('Loading model dict from ' + self.cfg.MODEL.weightPath)
             self.model.load_state_dict(torch.load(self.cfg.MODEL.weightPath)['model_state_dict'], strict=True)
             
-    def writeKeypoints(self, preds):
-        predFile = os.path.join(self.cfg.DATASET.logDir, self.args.version, "test_results.json" if self.args.eval else "val_results.json")
+    def writeKeypoints(self, phase):
+        predFile = os.path.join(self.cfg.DATASET.logDir, self.args.version, f"{phase}_results_{self.global_rank}.json")
         with open(predFile, 'w') as fp:
-            json.dump(preds, fp)
+            json.dump(self.save_preds, fp, indent=4)
     
     def saveKeypoints(self, preds, bbox, image_id, predHeatmap=None):
         savePreds = []
