@@ -154,12 +154,12 @@ class MInterfaceHuPRClassification(pl.LightningModule):
             pretrained_hupr_model = torch.load(cfg.MODEL.weightPath)['state_dict']
             pretrained_hupr_model = {k.replace('moodel.', ''): v for k, v in pretrained_hupr_model.items()}
             self.model.load_state_dict(pretrained_hupr_model, strict=False)
-            # freeze encoder layers
-            for param in self.model.RAchirpNet.parameters():
-                param.requires_grad = False
-            for param in self.model.REchirpNet.parameters():
-                param.requires_grad = False
-            for param in self.model.RAradarEncoder.parameters():
-                param.requires_grad = False
-            for param in self.model.REradarEncoder.parameters():
-                param.requires_grad = False
+            # # freeze encoder layers
+            # for param in self.model.RAchirpNet.parameters():
+            #     param.requires_grad = False
+            # for param in self.model.REchirpNet.parameters():
+            #     param.requires_grad = False
+            # for param in self.model.RAradarEncoder.parameters():
+            #     param.requires_grad = False
+            # for param in self.model.REradarEncoder.parameters():
+            #     param.requires_grad = False
