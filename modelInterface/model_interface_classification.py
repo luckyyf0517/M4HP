@@ -43,10 +43,10 @@ class MInterfaceHuPRClassification(pl.LightningModule):
         return self.model(x)
     
     def on_test_start(self):
-        self.save_preds = []
+        self.confusion_matrix = np.zeros((self.cfg.MODEL.numClasses, self.cfg.MODEL.numClasses))
         
     def on_validation_start(self):
-        self.save_preds = []
+        self.confusion_matrix = np.zeros((self.cfg.MODEL.numClasses, self.cfg.MODEL.numClasses))
     
     def training_step(self, batch, batch_idx):
         # random_indices = np.random.choice(
@@ -95,22 +95,37 @@ class MInterfaceHuPRClassification(pl.LightningModule):
         VRDAEmaps_hori = batch['VRDAEmap_hori']
         VRDAEmaps_vert = batch['VRDAEmap_vert']
         preds = self.model(VRDAEmaps_hori, VRDAEmaps_vert, mmwave_cfg)
-        loss = self.compute_loss(preds, labels)
         # print info
         num_iter = len(self.trainer.test_dataloaders)
         self.print('\033[93m' + 'batch {0:04d} / {1:04d}'.format(batch_idx, num_iter) + '\033[0m')
         # evaluation (by method in dataset)
+        self.update_confusion_matrix(preds, labels)
     
     def on_train_end(self):
         return 
     
     def on_validation_epoch_end(self):
-        return
+        self.compute_evaluate_metrics()
 
     def on_test_epoch_end(self):
-        return
+        self.compute_evaluate_metrics()
+    
+    def update_confusion_matrix(self, preds, labels):
+        preds = torch.argmax(preds, dim=1)
+        for i in range(len(preds)):
+            self.confusion_matrix[labels[i], preds[i]] += 1
+    
+    def compute_evaluate_metrics(self): 
+        TP = np.diag(self.confusion_matrix)
+        FN = np.sum(self.confusion_matrix, axis=1) - TP
+        FP = np.sum(self.confusion_matrix, axis=0) - TP
+        precision = TP / (TP + FP)
+        recall = TP / (TP + FN)
+        f1 = 2 * precision * recall / (precision + recall)
         
-    def compute_evaluate_metrics(self, phase='test'): 
+        self.log('precision', precision, on_step=False, on_epoch=True, prog_bar=False, logger=True)
+        self.log('recall', recall, on_step=False, on_epoch=True, prog_bar=False, logger=True)
+        self.log('f1', f1, on_step=False, on_epoch=True, prog_bar=False, logger=True)
         return
         
     def configure_optimizers(self):
