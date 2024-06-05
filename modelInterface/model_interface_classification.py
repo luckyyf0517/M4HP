@@ -83,6 +83,7 @@ class MInterfaceHuPRClassification(pl.LightningModule):
         num_iter = len(self.trainer.val_dataloaders)
         self.print('\033[93m' + 'epoch {0:04d}, iter {1:04d} / {2:04d} | TOTAL loss: {3:0>10.4f}'. \
             format(self.current_epoch, batch_idx, num_iter, loss.item()) + '\033[0m')
+        self.update_confusion_matrix(preds, labels)
         return loss
 
     def test_step(self, batch, batch_idx):
@@ -116,7 +117,6 @@ class MInterfaceHuPRClassification(pl.LightningModule):
             self.confusion_matrix[labels[i], preds[i]] += 1
     
     def compute_evaluate_metrics(self): 
-        print(self.confusion_matrix)
         TP = np.diag(self.confusion_matrix)
         FN = np.sum(self.confusion_matrix, axis=1) - TP
         FP = np.sum(self.confusion_matrix, axis=0) - TP
@@ -124,9 +124,10 @@ class MInterfaceHuPRClassification(pl.LightningModule):
         recall = TP / (TP + FN)
         f1 = 2 * precision * recall / (precision + recall)
         
-        self.log('precision', precision, on_step=False, on_epoch=True, prog_bar=False, logger=True)
-        self.log('recall', recall, on_step=False, on_epoch=True, prog_bar=False, logger=True)
-        self.log('f1', f1, on_step=False, on_epoch=True, prog_bar=False, logger=True)
+        self.log('precision', precision.mean(), on_step=False, on_epoch=True, prog_bar=False, logger=True)
+        self.log('recall', recall.mean(), on_step=False, on_epoch=True, prog_bar=False, logger=True)
+        self.log('f1', f1.mean(), on_step=False, on_epoch=True, prog_bar=False, logger=True)
+        print('precision: ', precision, 'recall: ', recall, 'f1: ', f1)
         return
         
     def configure_optimizers(self):
