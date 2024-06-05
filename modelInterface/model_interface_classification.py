@@ -116,6 +116,7 @@ class MInterfaceHuPRClassification(pl.LightningModule):
             self.confusion_matrix[labels[i], preds[i]] += 1
     
     def compute_evaluate_metrics(self): 
+        print(self.confusion_matrix)
         TP = np.diag(self.confusion_matrix)
         FN = np.sum(self.confusion_matrix, axis=1) - TP
         FP = np.sum(self.confusion_matrix, axis=0) - TP
