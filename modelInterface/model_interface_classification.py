@@ -140,9 +140,8 @@ class MInterfaceHuPRClassification(pl.LightningModule):
         else: 
             return 1
 
-    def compute_loss(self):
-        self.lossComputer = LossComputer(self.cfg, self.device)
-        return
+    def compute_loss(self, preds, labels):
+        return nn.functional.cross_entropy(preds, labels)
 
     def load_model(self, cfg: dict) -> nn.Module:
         assert cfg.MODEL.runClassification is True, "This model is for classification task only."
