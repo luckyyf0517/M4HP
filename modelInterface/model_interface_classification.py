@@ -91,7 +91,7 @@ class MInterfaceHuPRClassification(pl.LightningModule):
         if self.cfg.MODEL.recTarget == 'action': 
             labels = batch['action_label']
         elif self.cfg.MODEL.recTarget == 'person': 
-            labels = batch['person_id']
+            labels = batch['person_label']
         VRDAEmaps_hori = batch['VRDAEmap_hori']
         VRDAEmaps_vert = batch['VRDAEmap_vert']
         preds = self.model(VRDAEmaps_hori, VRDAEmaps_vert, mmwave_cfg)
