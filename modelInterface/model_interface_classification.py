@@ -60,7 +60,6 @@ class MInterfaceHuPRClassification(pl.LightningModule):
         VRDAEmaps_hori = batch['VRDAEmap_hori']
         VRDAEmaps_vert = batch['VRDAEmap_vert']
         preds = self.model(VRDAEmaps_hori, VRDAEmaps_vert, mmwave_cfg)
-        print(preds.shape)
         loss = self.compute_loss(preds, labels)
         self.log('train_loss/loss', loss, on_step=True, on_epoch=False, prog_bar=False, logger=True)
         # print info
