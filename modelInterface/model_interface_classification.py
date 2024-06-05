@@ -54,9 +54,9 @@ class MInterfaceHuPRClassification(pl.LightningModule):
         #     size=self.cfg.TRAINING.batchSize, replace=False)
         mmwave_cfg = batch['mmwave_cfg']
         if self.cfg.MODEL.recTarget == 'action': 
-            labels = batch['action_id']
+            labels = batch['action_label']
         elif self.cfg.MODEL.recTarget == 'person': 
-            labels = batch['person_id']
+            labels = batch['person_label']
         VRDAEmaps_hori = batch['VRDAEmap_hori']
         VRDAEmaps_vert = batch['VRDAEmap_vert']
         preds = self.model(VRDAEmaps_hori, VRDAEmaps_vert, mmwave_cfg)
@@ -71,9 +71,9 @@ class MInterfaceHuPRClassification(pl.LightningModule):
     def validation_step(self, batch, batch_idx):
         mmwave_cfg = batch['mmwave_cfg']
         if self.cfg.MODEL.recTarget == 'action': 
-            labels = batch['action_id']
+            labels = batch['action_label']
         elif self.cfg.MODEL.recTarget == 'person': 
-            labels = batch['person_id']
+            labels = batch['person_label']
         VRDAEmaps_hori = batch['VRDAEmap_hori']
         VRDAEmaps_vert = batch['VRDAEmap_vert']
         preds = self.model(VRDAEmaps_hori, VRDAEmaps_vert, mmwave_cfg)
@@ -89,7 +89,7 @@ class MInterfaceHuPRClassification(pl.LightningModule):
         imageId = batch['imageId']
         mmwave_cfg = batch['mmwave_cfg']
         if self.cfg.MODEL.recTarget == 'action': 
-            labels = batch['action_id']
+            labels = batch['action_label']
         elif self.cfg.MODEL.recTarget == 'person': 
             labels = batch['person_id']
         VRDAEmaps_hori = batch['VRDAEmap_hori']
@@ -140,7 +140,7 @@ class MInterfaceHuPRClassification(pl.LightningModule):
             return 1
 
     def compute_loss(self, preds, labels):
-        return nn.functional.cross_entropy(preds, labels)
+        return nn.functional.cross_entropy(preds, labels.to(preds.device))
 
     def load_model(self, cfg: dict) -> nn.Module:
         assert cfg.MODEL.runClassification is True, "This model is for classification task only."
