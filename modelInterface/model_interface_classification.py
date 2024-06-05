@@ -29,7 +29,7 @@ from baselines.HuPR.misc.losses import LossComputer
 from baselines.HuPR.misc.plot import plotHumanPose
 
 
-class MInterfaceHuPR(pl.LightningModule):
+class MInterfaceHuPRClassification(pl.LightningModule):
     def __init__(self, args, cfg, **kwargs):
         super().__init__()
         self.save_hyperparameters()
@@ -53,7 +53,10 @@ class MInterfaceHuPR(pl.LightningModule):
         #     [i for i in range(self.cfg.TRAINING.batchSize * self.args.sampling_ratio)], 
         #     size=self.cfg.TRAINING.batchSize, replace=False)
         mmwave_cfg = batch['mmwave_cfg']
-        keypoints = batch['jointsGroup']
+        if self.cfg.MODEL.recTarget == 'action': 
+            labels = batch['action_id']
+        elif self.cfg.MODEL.recTarget == 'person': 
+            labels = batch['person_id']
         VRDAEmaps_hori = batch['VRDAEmap_hori']
         VRDAEmaps_vert = batch['VRDAEmap_vert']
         preds = self.model(VRDAEmaps_hori, VRDAEmaps_vert, mmwave_cfg)
@@ -66,8 +69,6 @@ class MInterfaceHuPR(pl.LightningModule):
         return loss
 
     def validation_step(self, batch, batch_idx):
-        bbox = batch['bbox']
-        imageId = batch['imageId']
         mmwave_cfg = batch['mmwave_cfg']
         if self.cfg.MODEL.recTarget == 'action': 
             labels = batch['action_id']
