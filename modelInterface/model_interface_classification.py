@@ -113,18 +113,13 @@ class MInterfaceHuPR(pl.LightningModule):
         return
         
     def compute_evaluate_metrics(self, phase='test'): 
+        
         self.writeKeypoints(phase=phase)
-        
-        if phase == 'test': 
-            eval_dataset = self.trainer.test_dataloaders.dataset
-        elif phase == 'val': 
-            eval_dataset = self.trainer.val_dataloaders.dataset
-        
-        accAPs = eval_dataset.evaluateEach(loadDir=os.path.join('/root/log', self.args.version), rank=self.global_rank)
+        accAPs = self.trainer.test_dataloaders.dataset.evaluateEach(loadDir=os.path.join('/root/log', self.args.version), rank=self.global_rank)
         for jointName, accAP in zip(self.cfg.DATASET.idxToJoints, accAPs):
             self.log(phase + '_ap/' + jointName, accAP, on_step=False, on_epoch=True, prog_bar=False, logger=True, sync_dist_group=True)
         
-        accAP = eval_dataset.evaluate(loadDir=os.path.join('/root/log', self.args.version), rank=self.global_rank)
+        accAP = self.trainer.test_dataloaders.dataset.evaluate(loadDir=os.path.join('/root/log', self.args.version), rank=self.global_rank)
         self.log(phase + '_ap/AP', accAP['AP'], on_step=False, on_epoch=True, prog_bar=False, logger=True, sync_dist_group=True)
         self.log(phase + '_ap/Ap .5', accAP['AP .5'], on_step=False, on_epoch=True, prog_bar=False, logger=True, sync_dist_group=True)
         self.log(phase + '_ap/Ap .75', accAP['AP .75'], on_step=False, on_epoch=True, prog_bar=False, logger=True, sync_dist_group=True)

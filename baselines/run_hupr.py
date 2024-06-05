@@ -18,7 +18,6 @@ from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.loggers import TensorBoardLogger
 
-from HuPR.models.networks import HuPRNet
 from HuPR.datasets.dataset import HuPR3D_raw
 from HuPR.main import obj, parse_arg
 
@@ -32,7 +31,7 @@ if __name__ == "__main__":
         cfg = yaml.safe_load(f)
         cfg = obj(cfg)
     
-    model = MInterfaceHuPR(HuPRNet, args, cfg)
+    model = MInterfaceHuPR(args, cfg)
     data = DInterface(batch_size=cfg.TRAINING.batchSize, num_workers=cfg.SETUP.numWorkers, dataset=HuPR3D_raw, cfg=cfg, args=args)
     
     # Checkpoint callback
