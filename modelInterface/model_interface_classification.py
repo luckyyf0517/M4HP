@@ -158,8 +158,8 @@ class MInterfaceHuPRClassification(pl.LightningModule):
     def configure_loss(self):
         self.loss_fn = nn.CrossEntropyLoss()
     
-    def compute_loss(self, preds, labels):
-        return self.loss_fn(preds, labels)
+    def compute_loss(self, preds, labels, t=10):
+        return self.loss_fn(preds * t, labels)
 
     def load_model(self, cfg: dict) -> nn.Module:
         assert cfg.MODEL.runClassification is True, "This model is for classification task only."
