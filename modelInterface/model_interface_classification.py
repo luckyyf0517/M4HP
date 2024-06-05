@@ -120,9 +120,10 @@ class MInterfaceHuPRClassification(pl.LightningModule):
         TP = np.diag(self.confusion_matrix)
         FN = np.sum(self.confusion_matrix, axis=1) - TP
         FP = np.sum(self.confusion_matrix, axis=0) - TP
-        precision = TP / (TP + FP)
-        recall = TP / (TP + FN)
-        f1 = 2 * precision * recall / (precision + recall)
+        smooth = 1e-8
+        precision = TP / (TP + FP + smooth)
+        recall = TP / (TP + FN + smooth)
+        f1 = 2 * precision * recall / (precision + recall + smooth)
         
         self.log('precision', precision.mean(), on_step=False, on_epoch=True, prog_bar=False, logger=True)
         self.log('recall', recall.mean(), on_step=False, on_epoch=True, prog_bar=False, logger=True)
