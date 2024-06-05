@@ -61,7 +61,7 @@ class MInterfaceHuPRClassification(pl.LightningModule):
         VRDAEmaps_vert = batch['VRDAEmap_vert']
         preds = self.model(VRDAEmaps_hori, VRDAEmaps_vert, mmwave_cfg)
         print(preds.shape)
-        loss = self.computeLoss(preds, labels)
+        loss = self.compute_loss(preds, labels)
         self.log('train_loss/loss', loss, on_step=True, on_epoch=False, prog_bar=False, logger=True)
         # print info
         num_iter = len(self.trainer.train_dataloader)
@@ -78,7 +78,7 @@ class MInterfaceHuPRClassification(pl.LightningModule):
         VRDAEmaps_hori = batch['VRDAEmap_hori']
         VRDAEmaps_vert = batch['VRDAEmap_vert']
         preds = self.model(VRDAEmaps_hori, VRDAEmaps_vert, mmwave_cfg)
-        loss = self.computeLoss(preds, labels)
+        loss = self.compute_loss(preds, labels)
         self.log('validation_loss/loss', loss, on_step=False, on_epoch=True, prog_bar=False, logger=True)
         # print info
         num_iter = len(self.trainer.val_dataloaders)
@@ -96,7 +96,7 @@ class MInterfaceHuPRClassification(pl.LightningModule):
         VRDAEmaps_hori = batch['VRDAEmap_hori']
         VRDAEmaps_vert = batch['VRDAEmap_vert']
         preds = self.model(VRDAEmaps_hori, VRDAEmaps_vert, mmwave_cfg)
-        loss = self.computeLoss(preds, labels)
+        loss = self.compute_loss(preds, labels)
         # print info
         num_iter = len(self.trainer.test_dataloaders)
         self.print('\033[93m' + 'batch {0:04d} / {1:04d}'.format(batch_idx, num_iter) + '\033[0m')
@@ -147,5 +147,19 @@ class MInterfaceHuPRClassification(pl.LightningModule):
         assert cfg.MODEL.runClassification is True, "This model is for classification task only."
         self.model = HuPRClassificationNet(cfg)
         if self.cfg.MODEL.preLoad:
+            # for hupr running task, load the pretrained encoder only
             print('Loading model dict from ' + cfg.MODEL.weightPath)
-            self.model.load_state_dict(torch.load(cfg.MODEL.weightPath)['model_state_dict'], strict=True)
+            pretrained_hupr_model = torch.load(cfg.MODEL.weightPath)['model_state_dict']
+            self.model.RAchirpNet.load_state_dict(pretrained_hupr_model['RAchirpNet'], strict=True)
+            self.model.REchirpNet.load_state_dict(pretrained_hupr_model['REchirpNet'], strict=True)
+            self.model.RAradarEncoder.load_state_dict(pretrained_hupr_model['RAradarEncoder'], strict=True)
+            self.model.REradarEncoder.load_state_dict(pretrained_hupr_model['REradarEncoder'], strict=True)
+            # freeze encoder layers
+            for param in self.model.RAchirpNet.parameters():
+                param.requires_grad = False
+            for param in self.model.REchirpNet.parameters():
+                param.requires_grad = False
+            for param in self.model.RAradarEncoder.parameters():
+                param.requires_grad = False
+            for param in self.model.REradarEncoder.parameters():
+                param.requires_grad = False

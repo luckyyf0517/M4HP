@@ -163,6 +163,7 @@ class MInterfaceHuPR(pl.LightningModule):
         assert cfg.MODEL.runClassification is not True, "This model is for HuPR regression task."
         self.model = HuPRNet(cfg)
         if self.cfg.MODEL.preLoad:
+            # for hupr running task, load the pretrained model
             print('Loading model dict from ' + cfg.MODEL.weightPath)
             self.model.load_state_dict(torch.load(cfg.MODEL.weightPath)['model_state_dict'], strict=True)
             
