@@ -143,6 +143,7 @@ class MInterfaceHuPRClassification(pl.LightningModule):
         self.loss_fn = nn.CrossEntropyLoss()
     
     def compute_loss(self, preds, labels):
+        print(preds.shape, labels.shape)
         return self.loss_fn(preds, labels)
 
     def load_model(self, cfg: dict) -> nn.Module:
