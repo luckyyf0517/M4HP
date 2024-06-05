@@ -37,7 +37,7 @@ class MInterfaceHuPRClassification(pl.LightningModule):
         self.cfg = cfg
         self.args = args
         self.load_model(cfg)
-        self.configure_loss()
+        # self.configure_loss()
 
     def forward(self, x):
         return self.model(x)
