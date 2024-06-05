@@ -140,6 +140,7 @@ class MInterfaceHuPRClassification(pl.LightningModule):
             return 1
 
     def compute_loss(self, preds, labels):
+        from IPython import embed; embed()
         return nn.functional.cross_entropy(preds, labels.to(preds.device))
 
     def load_model(self, cfg: dict) -> nn.Module:
