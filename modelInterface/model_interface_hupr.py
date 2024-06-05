@@ -160,6 +160,7 @@ class MInterfaceHuPR(pl.LightningModule):
         return
 
     def load_model(self, cfg: dict) -> nn.Module:
+        assert cfg.MODEL.runClassification is not True, "This model is for HuPR regression task."
         self.model = HuPRNet(cfg)
         if self.cfg.MODEL.preLoad:
             print('Loading model dict from ' + cfg.MODEL.weightPath)
