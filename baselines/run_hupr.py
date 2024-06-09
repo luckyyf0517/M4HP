@@ -12,7 +12,6 @@ import yaml
 import torch
 import torchvision
 
-from modelInterface.model_interface_hupr import MInterfaceHuPR
 from dataInterface.data_interface import DInterface
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
@@ -31,7 +30,13 @@ if __name__ == "__main__":
         cfg = yaml.safe_load(f)
         cfg = obj(cfg)
     
-    model = MInterfaceHuPR(args, cfg)
+    if args.task == 'hupr': 
+        from modelInterface.model_interface_hupr import MInterfaceHuPR
+        model = MInterfaceHuPR(args, cfg)
+    elif args.task == 'cls': 
+        from modelInterface.model_interface_classification import MInterfaceHuPRClassification
+        model = MInterfaceHuPRClassification(args, cfg)
+    
     data = DInterface(batch_size=cfg.TRAINING.batchSize, num_workers=cfg.SETUP.numWorkers, dataset=HuPR3D_raw, cfg=cfg, args=args)
     
     # Checkpoint callback
@@ -49,7 +54,7 @@ if __name__ == "__main__":
 
     # Default used by the Trainer (no scaling of batch size)
     trainer = Trainer(
-        devices=args.gpuIDs,
+        devices=args.gpuIDs if not args.eval else [0],
         max_epochs=cfg.TRAINING.epochs,
         default_root_dir=args.version,
         strategy="ddp",

@@ -11,6 +11,8 @@ viz/
 viz
 log/
 log
+config/
+config
 *.mp4
 *.txt
 */*.zip
