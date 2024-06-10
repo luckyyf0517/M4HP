@@ -1,6 +1,6 @@
 #!/bin/bash
 
-if [ "$#" -ge 2 ]; then
+if [ "$#" -ge 1 ]; then
     VERSION_OR_CONFIG=$1
 else
     echo "Usage: $1 <version_or_config>, $2 <if_eval>"

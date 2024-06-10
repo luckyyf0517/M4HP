@@ -24,12 +24,12 @@ import torch.nn.functional as F
 import importlib
 import pytorch_lightning as pl
 
-from baselines.HuPR.models.networks import HuPRNet
+from baselines.HuPR.models.networks import HuPRMultiTask
 from baselines.HuPR.misc.losses import LossComputer
 from baselines.HuPR.misc.plot import plotHumanPose
 
 
-class MInterfaceHuPR(pl.LightningModule):
+class MInterfaceMultitask(pl.LightningModule):
     def __init__(self, args, cfg, **kwargs):
         super().__init__()
         self.save_hyperparameters()
@@ -44,55 +44,75 @@ class MInterfaceHuPR(pl.LightningModule):
     
     def on_test_start(self):
         self.save_preds = []
+        self.confusion_matrix = np.zeros((self.cfg.MODEL.numClasses, self.cfg.MODEL.numClasses))
         
     def on_validation_start(self):
         self.save_preds = []
+        self.confusion_matrix = np.zeros((self.cfg.MODEL.numClasses, self.cfg.MODEL.numClasses))
     
     def training_step(self, batch, batch_idx):
         # random_indices = np.random.choice(
         #     [i for i in range(self.cfg.TRAINING.batchSize * self.args.sampling_ratio)], 
         #     size=self.cfg.TRAINING.batchSize, replace=False)
         mmwave_cfg = batch['mmwave_cfg']
+        if self.cfg.MODEL.recTarget == 'action': 
+            labels = batch['action_label']
+        elif self.cfg.MODEL.recTarget == 'person': 
+            labels = batch['person_label']
         keypoints = batch['jointsGroup']
         VRDAEmaps_hori = batch['VRDAEmap_hori']
         VRDAEmaps_vert = batch['VRDAEmap_vert']
-        preds = self.model(VRDAEmaps_hori, VRDAEmaps_vert, mmwave_cfg)
-        loss, loss2, _, _ = self.lossComputer.computeLoss(preds, keypoints)
+        heatmap, gcn_heatmap, cls_preds = self.model(VRDAEmaps_hori, VRDAEmaps_vert, mmwave_cfg)
+        loss, loss2, _, _ = self.lossComputer.computeLoss((heatmap, gcn_heatmap), keypoints)
         self.log('train_loss/loss', loss, on_step=True, on_epoch=False, prog_bar=False, logger=True)
         self.log('train_loss/loss2', loss2, on_step=True, on_epoch=False, prog_bar=False, logger=True)
+        loss_cls = self.lossCls(cls_preds * 10, labels) * 0.1
+        self.log('train_loss/loss_cls', loss_cls, on_step=True, on_epoch=False, prog_bar=False, logger=True)
         # print info
         num_iter = len(self.trainer.train_dataloader)
         self.print('epoch {0:04d}, iter {1:04d} / {2:04d} | TOTAL loss: {3:0>10.4f}'. \
             format(self.current_epoch, batch_idx, num_iter, loss.item()))
-        return loss
+        return loss + loss_cls
 
     def validation_step(self, batch, batch_idx):
         bbox = batch['bbox']
         imageId = batch['imageId']
         mmwave_cfg = batch['mmwave_cfg']
+        if self.cfg.MODEL.recTarget == 'action': 
+            labels = batch['action_label']
+        elif self.cfg.MODEL.recTarget == 'person': 
+            labels = batch['person_label']
         keypoints = batch['jointsGroup']
         VRDAEmaps_hori = batch['VRDAEmap_hori']
         VRDAEmaps_vert = batch['VRDAEmap_vert']
-        preds = self.model(VRDAEmaps_hori, VRDAEmaps_vert, mmwave_cfg)
-        loss, loss2, preds2d, keypoints2d = self.lossComputer.computeLoss(preds, keypoints)
+        heatmap, gcn_heatmap, cls_preds = self.model(VRDAEmaps_hori, VRDAEmaps_vert, mmwave_cfg)
+        loss, loss2, preds2d, keypoints2d = self.lossComputer.computeLoss((heatmap, gcn_heatmap), keypoints)
         self.log('validation_loss/loss', loss, on_step=False, on_epoch=True, prog_bar=False, logger=True)
         self.log('validation_loss/loss2', loss2, on_step=False, on_epoch=True, prog_bar=False, logger=True)
+        loss_cls = self.lossCls(cls_preds * 10, labels) * 0.1
+        self.log('validation_loss/loss_cls', loss_cls, on_step=False, on_epoch=True, prog_bar=False, logger=True)
         # print info
         num_iter = len(self.trainer.val_dataloaders)
         self.print('\033[93m' + 'epoch {0:04d}, iter {1:04d} / {2:04d} | TOTAL loss: {3:0>10.4f}'. \
             format(self.current_epoch, batch_idx, num_iter, loss.item()) + '\033[0m')
-        self.save_preds += self.saveKeypoints(preds2d * self.cfg.DATASET.imgHeatmapRatio, bbox, imageId)
-        return loss
+        # skip computing ap in validation
+        # self.save_preds += self.saveKeypoints(preds2d * self.cfg.DATASET.imgHeatmapRatio, bbox, imageId)
+        self.update_confusion_matrix(cls_preds, labels)
+        return loss + loss_cls
 
     def test_step(self, batch, batch_idx):
         bbox = batch['bbox']
         imageId = batch['imageId']
         mmwave_cfg = batch['mmwave_cfg']
+        if self.cfg.MODEL.recTarget == 'action': 
+            labels = batch['action_label']
+        elif self.cfg.MODEL.recTarget == 'person': 
+            labels = batch['person_label']
         keypoints = batch['jointsGroup']
         VRDAEmaps_hori = batch['VRDAEmap_hori']
         VRDAEmaps_vert = batch['VRDAEmap_vert']
-        preds = self.model(VRDAEmaps_hori, VRDAEmaps_vert, mmwave_cfg)
-        _, _, preds2d, keypoints2d = self.lossComputer.computeLoss(preds, keypoints)
+        heatmap, gcn_heatmap, cls_preds = self.model(VRDAEmaps_hori, VRDAEmaps_vert, mmwave_cfg)
+        _, _, preds2d, keypoints2d = self.lossComputer.computeLoss((heatmap, gcn_heatmap), keypoints)
         # print info
         num_iter = len(self.trainer.test_dataloaders)
         self.print('\033[93m' + 'batch {0:04d} / {1:04d}'.format(batch_idx, num_iter) + '\033[0m')
@@ -100,6 +120,7 @@ class MInterfaceHuPR(pl.LightningModule):
         plotHumanPose(preds2d * self.cfg.DATASET.imgHeatmapRatio, imageIdx=imageId, cfg=self.cfg, visDir=os.path.join(self.args.visDir, self.args.version))
         # evaluation (by method in dataset)
         self.save_preds += self.saveKeypoints(preds2d * self.cfg.DATASET.imgHeatmapRatio, bbox, imageId)
+        self.update_confusion_matrix(cls_preds, labels)
     
     def on_train_end(self):
         return 
@@ -113,21 +134,29 @@ class MInterfaceHuPR(pl.LightningModule):
         return
         
     def compute_evaluate_metrics(self, phase='test'): 
-        self.writeKeypoints(phase=phase)
         
         if phase == 'test': 
+            self.writeKeypoints(phase=phase)
             eval_dataset = self.trainer.test_dataloaders.dataset
-        elif phase == 'val': 
-            eval_dataset = self.trainer.val_dataloaders.dataset
+            accAPs = eval_dataset.evaluateEach(loadDir=os.path.join('/root/log', self.args.version))
+            for jointName, accAP in zip(self.cfg.DATASET.idxToJoints, accAPs):
+                self.log(phase + '_ap/' + jointName, accAP, on_step=False, on_epoch=True, prog_bar=False, logger=True, sync_dist_group=True)
+            accAP = eval_dataset.evaluate(loadDir=os.path.join('/root/log', self.args.version))
+            self.log(phase + '_ap/AP', accAP['AP'], on_step=False, on_epoch=True, prog_bar=False, logger=True, sync_dist_group=True)
+            self.log(phase + '_ap/Ap .5', accAP['AP .5'], on_step=False, on_epoch=True, prog_bar=False, logger=True, sync_dist_group=True)
+            self.log(phase + '_ap/Ap .75', accAP['AP .75'], on_step=False, on_epoch=True, prog_bar=False, logger=True, sync_dist_group=True)
         
-        accAPs = eval_dataset.evaluateEach(loadDir=os.path.join('/root/log', self.args.version))
-        for jointName, accAP in zip(self.cfg.DATASET.idxToJoints, accAPs):
-            self.log(phase + '_ap/' + jointName, accAP, on_step=False, on_epoch=True, prog_bar=False, logger=True, sync_dist_group=True)
-        
-        accAP = eval_dataset.evaluate(loadDir=os.path.join('/root/log', self.args.version))
-        self.log(phase + '_ap/AP', accAP['AP'], on_step=False, on_epoch=True, prog_bar=False, logger=True, sync_dist_group=True)
-        self.log(phase + '_ap/Ap .5', accAP['AP .5'], on_step=False, on_epoch=True, prog_bar=False, logger=True, sync_dist_group=True)
-        self.log(phase + '_ap/Ap .75', accAP['AP .75'], on_step=False, on_epoch=True, prog_bar=False, logger=True, sync_dist_group=True)
+        TP = np.diag(self.confusion_matrix)
+        FN = np.sum(self.confusion_matrix, axis=1) - TP
+        FP = np.sum(self.confusion_matrix, axis=0) - TP
+        smooth = 1e-8
+        precision = TP / (TP + FP + smooth)
+        recall = TP / (TP + FN + smooth)
+        f1 = 2 * precision * recall / (precision + recall + smooth)
+        self.log('precision', precision.mean(), on_step=False, on_epoch=True, prog_bar=False, logger=True)
+        self.log('recall', recall.mean(), on_step=False, on_epoch=True, prog_bar=False, logger=True)
+        self.log('f1', f1.mean(), on_step=False, on_epoch=True, prog_bar=False, logger=True)
+        print('precision: ', precision.mean(), 'recall: ', recall.mean(), 'f1: ', f1.mean())
         
     def configure_optimizers(self):
         # Optimizer
@@ -157,11 +186,11 @@ class MInterfaceHuPR(pl.LightningModule):
 
     def configure_loss(self):
         self.lossComputer = LossComputer(self.cfg, self.device)
+        self.lossCls = nn.CrossEntropyLoss()
         return
 
     def load_model(self, cfg: dict) -> nn.Module:
-        assert cfg.MODEL.runClassification is not True, "This model is for HuPR regression task."
-        self.model = HuPRNet(cfg)
+        self.model = HuPRMultiTask(cfg)
         if self.cfg.MODEL.preLoad:
             # for hupr running task, load the pretrained model
             print('Loading model dict from ' + cfg.MODEL.weightPath)
@@ -190,3 +219,8 @@ class MInterfaceHuPR(pl.LightningModule):
             block_copy = block.copy()
             savePreds.append(block_copy)
         return savePreds
+    
+    def update_confusion_matrix(self, preds, labels):
+        preds = torch.argmax(preds, dim=1)
+        for i in range(len(preds)):
+            self.confusion_matrix[labels[i], preds[i]] += 1

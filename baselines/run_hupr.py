@@ -21,7 +21,7 @@ from HuPR.datasets.dataset import HuPR3D_raw
 from HuPR.main import obj, parse_arg
 
 torch.set_float32_matmul_precision('high')
-
+torch.autograd.set_detect_anomaly(True)
 
 if __name__ == "__main__":
 
@@ -30,12 +30,12 @@ if __name__ == "__main__":
         cfg = yaml.safe_load(f)
         cfg = obj(cfg)
     
-    if args.task == 'hupr': 
-        from modelInterface.model_interface_hupr import MInterfaceHuPR
-        model = MInterfaceHuPR(args, cfg)
-    elif args.task == 'cls': 
-        from modelInterface.model_interface_classification import MInterfaceHuPRClassification
-        model = MInterfaceHuPRClassification(args, cfg)
+    # from modelInterface import MInterfaceHuPR
+    # model = MInterfaceHuPR(args, cfg)
+    # from modelInterface import MInterfaceHuPRClassification
+    # model = MInterfaceHuPRClassification(args, cfg)
+    from modelInterface import MInterfaceMultitask
+    model = MInterfaceMultitask(args, cfg)
     
     data = DInterface(batch_size=cfg.TRAINING.batchSize, num_workers=cfg.SETUP.numWorkers, dataset=HuPR3D_raw, cfg=cfg, args=args)
     

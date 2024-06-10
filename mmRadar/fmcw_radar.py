@@ -1,8 +1,8 @@
 import sys
 sys.path.append('.')
 import mpld3
-# import cupy as np
-import numpy as np
+import cupy as np
+# import numpy as np
 from copy import deepcopy
 from easydict import EasyDict as edict
 from matplotlib import pyplot as plt

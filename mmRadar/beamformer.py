@@ -1,6 +1,6 @@
 import time
-# import cupy as np
-import numpy as np
+import cupy as np
+# import numpy as np
 from scipy.optimize import newton_krylov
 from copy import deepcopy
 
@@ -15,8 +15,7 @@ class Beamformer(object):
         self.steering_vector = np.zeros((num_antennas, num_steps), dtype=np.complex128)
         for idx in range(0, num_antennas):
             # for FMCW radar, the steering vector is (j 2 pi d sin(theta) / c)
-            # self.steering_vector[idx, :] = np.exp(1j * np.pi * idx * np.sin(self.thetas))
-            self.steering_vector[idx, :] = np.exp(1j * 2 * idx * self.thetas)
+            self.steering_vector[idx, :] = np.exp(1j * np.pi * idx * np.sin(self.thetas))
     
     def beamforming_func(self, rxx):
         raise NotImplementedError
