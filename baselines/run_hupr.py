@@ -30,12 +30,12 @@ if __name__ == "__main__":
         cfg = yaml.safe_load(f)
         cfg = obj(cfg)
     
-    # from modelInterface import MInterfaceHuPR
-    # model = MInterfaceHuPR(args, cfg)
+    from modelInterface import MInterfaceHuPR
+    model = MInterfaceHuPR(args, cfg)
     # from modelInterface import MInterfaceHuPRClassification
     # model = MInterfaceHuPRClassification(args, cfg)
-    from modelInterface import MInterfaceMultitask
-    model = MInterfaceMultitask(args, cfg)
+    # from modelInterface import MInterfaceMultitask
+    # model = MInterfaceMultitask(args, cfg)
     
     data = DInterface(batch_size=cfg.TRAINING.batchSize, num_workers=cfg.SETUP.numWorkers, dataset=HuPR3D_raw, cfg=cfg, args=args)
     
