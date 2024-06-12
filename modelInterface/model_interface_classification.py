@@ -128,7 +128,7 @@ class MInterfaceHuPRClassification(pl.LightningModule):
         self.log('precision', precision.mean(), on_step=False, on_epoch=True, prog_bar=False, logger=True)
         self.log('recall', recall.mean(), on_step=False, on_epoch=True, prog_bar=False, logger=True)
         self.log('f1', f1.mean(), on_step=False, on_epoch=True, prog_bar=False, logger=True)
-        print('precision: ', precision.mean(), 'recall: ', recall.mean(), 'f1: ', f1.mean())
+        print('precision: ', precision, 'recall: ', recall, 'f1: ', f1)
         return
         
     def configure_optimizers(self):

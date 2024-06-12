@@ -16,4 +16,4 @@ fi
 echo python baselines/run_hupr.py --version $VERSION_OR_CONFIG --config $VERSION_OR_CONFIG.yaml --gpuIDs '[0,1,2,3]' $EVAL_FLAG
 
 export OMP_NUM_THREADS=10 
-python baselines/run_hupr.py --version $VERSION_OR_CONFIG --config $VERSION_OR_CONFIG.yaml --gpuIDs '[0,1,2,3]' $EVAL_FLAG #--task cls
+python baselines/run_hupr.py --version $VERSION_OR_CONFIG --config $VERSION_OR_CONFIG.yaml --gpuIDs '[0,1,2,3]' $EVAL_FLAG --visDir /root/viz
