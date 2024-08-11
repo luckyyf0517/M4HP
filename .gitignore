@@ -5,11 +5,14 @@
 **/saved_files/*
 */CLI_LogFile.txt
 
-data/
-data
+raw_data
+proc_data
 viz/
 viz
 log/
 log
+config/
+config
 *.mp4
+*.txt
 */*.zip
