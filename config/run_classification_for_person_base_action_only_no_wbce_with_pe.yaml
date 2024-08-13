@@ -1,0 +1,53 @@
+DATASET:
+  upsamplingFactor: 4 # from heatmaps (64 x 64) to RGB (256 x 256)
+  duration: 300
+  heatmapSize: 64
+  imgSize: 256
+  imgHeatmapRatio: 4
+  rangeSize: 64
+  azimuthSize: 64
+  elevationSize: 8
+  numKeypoints: 14
+  numFrames: 8 # num of chirps in one frame to be processed
+  numGroupFrames: 8 # num of frames to be processed
+  performDopplerFFT: True
+  numChirps: 64 # num of chirps captured by radar sensors, should always be 16
+  logDir: '/root/log'
+  dataDir: '/root/proc_data/HuPR_collected/' #'../radar_skeleton_estimation_iwr1843/data/20220623'
+  trainName: [
+    1, 2, 3, 4, 6, 7, 8, 11, 12, 13,
+    27, 28, 29, 30, 31, 428, 429, 430, 431, 432,
+    43, 44, 46, 47, 48, 49, 50, 52, 53, 54,
+    60, 61, 62, 63, 64, 66, 68, 69, 70, 71, 
+    101, 102, 103, 105, 106, 111, 126, 127, 128, 131, 
+    201, 202, 203, 204, 205, 206, 224, 225, 226, 227, 
+    304, 305, 306, 307, 308, 309, 325, 326, 327, 328]
+  valName: [
+    5, 25, 45, 65, 129, 229, 329]
+  testName: [
+    15, 35, 55, 75, 130, 230, 330]
+  idxToJoints: ["R_Hip", "R_Knee", "R_Ankle", "L_Hip", "L_Knee", "L_Ankle", "Neck", "Head", "L_Shoulder", "L_Elbow", "L_Wrist", "R_Shoulder", "R_Elbow", "R_Wrist"]
+MODEL:
+  runClassification: True
+  recTarget: 'person'
+  numClasses: 7
+  preLoad: True
+  numFilters: 32
+  addPositionEmbedding: True
+  weightPath: '/root/log/pretrained_weights/hupr_encoder_pretrained_on_action.ckpt'
+TRAINING:
+  batchSize: 24
+  epochs: 200
+  lr: 0.0001
+  warmupEpoch: -1
+  warmupGrowth: 1.005
+  lrDecay: 0.999
+  lrDecayIter: 2000
+  lossDecay: -1
+  useWeight: False
+  optimizer: "adam"
+TEST:
+  batchSize: 32
+  plotImgDir: '/root/raw_data/demo/'
+SETUP:
+  numWorkers: 1

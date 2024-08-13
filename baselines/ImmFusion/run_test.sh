@@ -1,0 +1,11 @@
+python ./run_immfusion_lightning.py \
+    --output_dir output/immfusion \
+    --resume_checkpoint 'output/fusediffusion-v6/checkpoints/last.ckpt' \
+    --data_path datasets/mmBody \
+    --model DiffusionFusion \
+    --input_feat_dim "2051, 512, 128" \
+    --hidden_feat_dim "1024, 256, 64" \
+    --output_feat_dim "3" \
+    --per_gpu_train_batch_size 10 \
+    --gpu_idx '[0,1,2,3]' \
+    --test_scene lab1 

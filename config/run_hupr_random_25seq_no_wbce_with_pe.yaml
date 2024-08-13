@@ -1,0 +1,46 @@
+DATASET:
+  upsamplingFactor: 4 # from heatmaps (64 x 64) to RGB (256 x 256)
+  duration: 300
+  heatmapSize: 64
+  imgSize: 256
+  imgHeatmapRatio: 4
+  rangeSize: 64
+  azimuthSize: 64
+  elevationSize: 8
+  numKeypoints: 14
+  numFrames: 8 # num of chirps in one frame to be processed
+  numGroupFrames: 8 # num of frames to be processed
+  performDopplerFFT: True
+  numChirps: 64 # num of chirps captured by radar sensors, should always be 16
+  logDir: '/root/log'
+  dataDir: '/root/proc_data/HuPR_collected/' #'../radar_skeleton_estimation_iwr1843/data/20220623'
+  trainName: [
+    1, 2, 3, 4, 5, 6, 7, 8, 9, 
+    11, 12, 13, 14, 15, 16, 17, 18, 19, 
+    22, 23, 24, 25, 25, 27, 28, 29, # 21 is deprecated
+    ]
+  valName: [10, 20, 30]
+  testName: [10, 20, 30]
+  idxToJoints: ["R_Hip", "R_Knee", "R_Ankle", "L_Hip", "L_Knee", "L_Ankle", "Neck", "Head", "L_Shoulder", "L_Elbow", "L_Wrist", "R_Shoulder", "R_Elbow", "R_Wrist"]
+MODEL:
+  runClassification: False
+  preLoad: False
+  numFilters: 32
+  addPositionEmbedding: True
+  weightPath: '/root/log/pretrained_weights/mscsa_prgcn.ckpt'
+TRAINING:
+  batchSize: 24
+  epochs: 20
+  lr: 0.0001
+  warmupEpoch: -1
+  warmupGrowth: 1.005
+  lrDecay: 0.999
+  lrDecayIter: 2000
+  lossDecay: -1
+  useWeight: False
+  optimizer: "adam"
+TEST:
+  batchSize: 32
+  plotImgDir: '/root/raw_data/demo/'
+SETUP:
+  numWorkers: 1

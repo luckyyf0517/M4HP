@@ -1,0 +1,59 @@
+DATASET:
+  upsamplingFactor: 4 # from heatmaps (64 x 64) to RGB (256 x 256)
+  duration: 300
+  heatmapSize: 64
+  imgSize: 256
+  imgHeatmapRatio: 4
+  rangeSize: 64
+  azimuthSize: 64
+  elevationSize: 8
+  numKeypoints: 14
+  numFrames: 8 # num of chirps in one frame to be processed
+  numGroupFrames: 8 # num of frames to be processed
+  performDopplerFFT: True
+  numChirps: 64 # num of chirps captured by radar sensors, should always be 16
+  logDir: '/root/log'
+  dataDir: '/root/proc_data/HuPR_collected/' #'../radar_skeleton_estimation_iwr1843/data/20220623'
+  trainName: [
+    101, 102, 103, 104, 105, 106, 107, 108, 109, 
+    110, 111, 112, 113, 114, 115, 116, 117, 118, 
+    119, 120, 121, 122, 123, 124, 125, 126, 127, 
+    201, 202, 203, 204, 205, 206, 207, 208, 209,
+    210, 211, 212, 213, 214, 215, 216, 217, 218, 
+    219, 220, 221, 222, 223, 224, 225, 226, 227,
+    301, 302, 303, 304, 305, 306, 307, 308, 309, 
+    310, 311, 312, 313, 314, 315, 316, 317, 318, 
+    319, 320, 321, 322, 323, 324, 325, 326, 327]
+  valName: [
+    401, 402, 403, 404, 405, 406, 407, 408, 409, 
+    410, 411, 412, 413, 414, 415, 416, 417, 418, 
+    419, 420, 421, 422, 423, 424, 425, 426, 427]
+  testName: [
+    401, 402, 403, 404, 405, 406, 407, 408, 409, 
+    410, 411, 412, 413, 414, 415, 416, 417, 418, 
+    419, 420, 421, 422, 423, 424, 425, 426, 427]
+  idxToJoints: ["R_Hip", "R_Knee", "R_Ankle", "L_Hip", "L_Knee", "L_Ankle", "Neck", "Head", "L_Shoulder", "L_Elbow", "L_Wrist", "R_Shoulder", "R_Elbow", "R_Wrist"]
+MODEL:
+  runClassification: True
+  recTarget: 'action'
+  numClasses: 27
+  preLoad: False
+  numFilters: 32
+  addPositionEmbedding: True
+  weightPath: '/root/log/pretrained_weights/mscsa_prgcn.ckpt'
+TRAINING:
+  batchSize: 24
+  epochs: 200
+  lr: 0.0001
+  warmupEpoch: -1
+  warmupGrowth: 1.005
+  lrDecay: 0.999
+  lrDecayIter: 2000
+  lossDecay: -1
+  useWeight: False
+  optimizer: "adam"
+TEST:
+  batchSize: 32
+  plotImgDir: '/root/raw_data/demo/'
+SETUP:
+  numWorkers: 1
