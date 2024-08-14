@@ -13,5 +13,5 @@
 # limitations under the License.
 
 from .model_interface_hupr import MInterfaceHuPR
-from .model_interface_classification import MInterfaceHuPRClassification
-from .model_interface_multitask import MInterfaceMultitask
+# from .model_interface_classification import MInterfaceHuPRClassification
+# from .model_interface_multitask import MInterfaceMultitask

@@ -16,16 +16,16 @@ class Runner(BaseRunner):
         if not args.eval:
             self.trainSet = getDataset('train', cfg, args)
             self.trainLoader = data.DataLoader(self.trainSet,
-                                  self.cfg.TRAINING.batchSize,
+                                  self.cfg.TRAINING.batch_size,
                                   shuffle=True,
-                                  num_workers=cfg.SETUP.numWorkers)
+                                  num_workers=cfg.SETUP.num_workers)
         else:
             self.trainLoader = [0] # an empty loader
         self.testSet = getDataset('test' if args.eval else 'val', cfg, args)
         self.testLoader = data.DataLoader(self.testSet, 
-                              self.cfg.TEST.batchSize,
+                              self.cfg.TEST.batch_size,
                               shuffle=False,
-                              num_workers=cfg.SETUP.numWorkers)
+                              num_workers=cfg.SETUP.num_workers)
         self.model = HuPRNet(self.cfg).to(self.device)
         self.stepSize = len(self.trainLoader) * self.cfg.TRAINING.warmupEpoch
         LR = self.cfg.TRAINING.lr if self.cfg.TRAINING.warmupEpoch == -1 else self.cfg.TRAINING.lr / (self.cfg.TRAINING.warmupGrowth ** self.stepSize)

@@ -19,14 +19,14 @@ class BaseRunner():
         self.visDir = args.visDir
         self.args = args
         self.cfg = cfg
-        self.heatmapSize = self.width = self.height = self.cfg.DATASET.heatmapSize
+        self.heatmap_size = self.width = self.height = self.cfg.DATASET.heatmap_size
         self.imgSize = self.imgWidth = self.imgHeight = self.cfg.DATASET.imgSize
-        self.numKeypoints = self.cfg.DATASET.numKeypoints
+        self.num_keypoints = self.cfg.DATASET.num_keypoints
         self.dimsWidthHeight = (self.width, self.height)
         self.start_epoch = 0
         self.numFrames = self.cfg.DATASET.numFrames
-        self.F = self.cfg.DATASET.numGroupFrames
-        self.imgHeatmapRatio = self.cfg.DATASET.imgSize / self.cfg.DATASET.heatmapSize
+        self.F = self.cfg.DATASET.num_group_frames
+        self.imgHeatmapRatio = self.cfg.DATASET.imgSize / self.cfg.DATASET.heatmap_size
         self.aspectRatio = self.imgWidth * 1.0 / self.imgHeight
         self.pixel_std = 200
 
@@ -123,9 +123,9 @@ class BaseRunner():
     
     def saveKeypoints(self, savePreds, preds, bbox, image_id, predHeatmap=None):
         
-        visidx = np.ones((len(preds), self.numKeypoints, 1))
+        visidx = np.ones((len(preds), self.num_keypoints, 1))
         preds = np.concatenate((preds, visidx), axis=2)
-        predsigma = np.zeros((len(preds), self.numKeypoints))
+        predsigma = np.zeros((len(preds), self.num_keypoints))
         
         for j in range(len(preds)):
             block = {}
@@ -136,10 +136,10 @@ class BaseRunner():
             block["image_id"] = image_id[j].item()
             block["scale"] = scale.tolist()
             block["score"] = 1.0
-            block["keypoints"] = preds[j].reshape(self.numKeypoints*3).tolist()
+            block["keypoints"] = preds[j].reshape(self.num_keypoints*3).tolist()
             if predHeatmap is not None:
-                for kpts in range(self.numKeypoints):
-                    predsigma[j, kpts] = predHeatmap[j, kpts].var().item() * self.heatmapSize
+                for kpts in range(self.num_keypoints):
+                    predsigma[j, kpts] = predHeatmap[j, kpts].var().item() * self.heatmap_size
                 block["sigma"] = predsigma[j].tolist()
             block_copy = block.copy()
             savePreds.append(block_copy)
@@ -147,7 +147,7 @@ class BaseRunner():
         return savePreds
 
     def writeKeypoints(self, preds):
-        predFile = os.path.join(self.cfg.DATASET.logDir, self.dir, "test_results.json" if self.args.eval else "val_results.json")
+        predFile = os.path.join(self.cfg.DATASET.log_dir, self.dir, "test_results.json" if self.args.eval else "val_results.json")
         with open(predFile, 'w') as fp:
             json.dump(preds, fp)
 

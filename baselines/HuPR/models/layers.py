@@ -74,27 +74,27 @@ class Encoder3D(nn.Module):
     def __init__(self, cfg, batchnorm=True, activation=nn.ReLU):
         super(Encoder3D, self).__init__()
         #self.numFrames = cfg.DATASET.numFrames
-        self.numGroupFrames = cfg.DATASET.numGroupFrames # for 60
-        self.numFilters = cfg.MODEL.numFilters
-        self.width = cfg.DATASET.heatmapSize
-        self.height = cfg.DATASET.heatmapSize
+        self.num_group_frames = cfg.DATASET.num_group_frames # for 60
+        self.num_filters = cfg.MODEL.num_filters
+        self.width = cfg.DATASET.heatmap_size
+        self.height = cfg.DATASET.heatmap_size
         self.layer1 = nn.Sequential(
-            nn.Conv3d(self.numFilters, self.numFilters*2, 3, 1, 1),
-            BasicBlock3D(self.numFilters*2, self.numFilters*2, 3, 1, 1),
+            nn.Conv3d(self.num_filters, self.num_filters*2, 3, 1, 1),
+            BasicBlock3D(self.num_filters*2, self.num_filters*2, 3, 1, 1),
         )
         self.layer2 = nn.Sequential(
             nn.Upsample(scale_factor=0.5, mode='trilinear', align_corners=True),
-            BasicBlock3D(self.numFilters*2, self.numFilters*4, 3, 1, 1),
-            BasicBlock3D(self.numFilters*4, self.numFilters*4, 3, 1, 1),
+            BasicBlock3D(self.num_filters*2, self.num_filters*4, 3, 1, 1),
+            BasicBlock3D(self.num_filters*4, self.num_filters*4, 3, 1, 1),
         )
         self.layer3 = nn.Sequential(
             nn.Upsample(scale_factor=0.5, mode='trilinear', align_corners=True),
-            BasicBlock3D(self.numFilters*4, self.numFilters*8, 3, 1, 1),
-            BasicBlock3D(self.numFilters*8, self.numFilters*8, 3, 1, 1),
+            BasicBlock3D(self.num_filters*4, self.num_filters*8, 3, 1, 1),
+            BasicBlock3D(self.num_filters*8, self.num_filters*8, 3, 1, 1),
         )
-        self.l1temporalMerge = nn.Conv3d(self.numFilters*2, self.numFilters*2, (self.numGroupFrames, 1, 1), 1, 0, bias=False)
-        self.l2temporalMerge = nn.Conv3d(self.numFilters*4, self.numFilters*4, (self.numGroupFrames//2, 1, 1), 1, 0, bias=False)
-        self.temporalMerge = nn.Conv3d(self.numFilters*8, self.numFilters*8, (self.numGroupFrames//4, 1, 1), 1, 0, bias=False)
+        self.l1temporalMerge = nn.Conv3d(self.num_filters*2, self.num_filters*2, (self.num_group_frames, 1, 1), 1, 0, bias=False)
+        self.l2temporalMerge = nn.Conv3d(self.num_filters*4, self.num_filters*4, (self.num_group_frames//2, 1, 1), 1, 0, bias=False)
+        self.temporalMerge = nn.Conv3d(self.num_filters*8, self.num_filters*8, (self.num_group_frames//4, 1, 1), 1, 0, bias=False)
     
     def forward(self, maps):
         l1maps = self.layer1(maps)
@@ -107,26 +107,26 @@ class Encoder3D(nn.Module):
 class MultiScaleCrossSelfAttentionPRGCN(nn.Module):
     def __init__(self, cfg, batchnorm=True, activation=nn.ReLU):
         super(MultiScaleCrossSelfAttentionPRGCN, self).__init__()
-        self.numGroupFrames = cfg.DATASET.numGroupFrames
-        self.numFilters = cfg.MODEL.numFilters
-        self.width = cfg.DATASET.heatmapSize
-        self.height = cfg.DATASET.heatmapSize
-        self.numKeypoints = cfg.DATASET.numKeypoints
+        self.num_group_frames = cfg.DATASET.num_group_frames
+        self.num_filters = cfg.MODEL.num_filters
+        self.width = cfg.DATASET.heatmap_size
+        self.height = cfg.DATASET.heatmap_size
+        self.num_keypoints = cfg.DATASET.num_keypoints
 
         self.decoderLayer3 = nn.Sequential(
-            BasicBlock2D(self.numFilters*8*4, self.numFilters*8, 3, 1, 1, batchnorm, activation),
-            BasicBlock2D(self.numFilters*8, self.numFilters*4, 3, 1, 1, batchnorm, activation),
+            BasicBlock2D(self.num_filters*8*4, self.num_filters*8, 3, 1, 1, batchnorm, activation),
+            BasicBlock2D(self.num_filters*8, self.num_filters*4, 3, 1, 1, batchnorm, activation),
             nn.Upsample(scale_factor=2.0, mode='bilinear', align_corners=True),
         )
         self.decoderLayer2 = nn.Sequential(
-            BasicBlock2D(self.numFilters*4*5, self.numFilters*4, 3, 1, 1, batchnorm, activation),
-            BasicBlock2D(self.numFilters*4, self.numFilters*2, 3, 1 ,1, batchnorm, activation),
+            BasicBlock2D(self.num_filters*4*5, self.num_filters*4, 3, 1, 1, batchnorm, activation),
+            BasicBlock2D(self.num_filters*4, self.num_filters*2, 3, 1 ,1, batchnorm, activation),
             nn.Upsample(scale_factor=2.0, mode='bilinear', align_corners=True),
         )
         self.decoderLayer1 = nn.Sequential(
-            BasicBlock2D(self.numFilters*2*5, self.numFilters*2, 3, 1, 1, batchnorm, activation),
-            BasicBlock2D(self.numFilters*2, self.numFilters, 3, 1, 1, batchnorm, activation),
-            nn.Conv2d(self.numFilters, self.numKeypoints, 1, 1, 0, bias=False),
+            BasicBlock2D(self.num_filters*2*5, self.num_filters*2, 3, 1, 1, batchnorm, activation),
+            BasicBlock2D(self.num_filters*2, self.num_filters, 3, 1, 1, batchnorm, activation),
+            nn.Conv2d(self.num_filters, self.num_keypoints, 1, 1, 0, bias=False),
         )
 
         A = torch.tensor([
@@ -147,7 +147,7 @@ class MultiScaleCrossSelfAttentionPRGCN(nn.Module):
         ], dtype=torch.float)
         self.gcn = PRGCN(cfg, A)
 
-        filterList = [self.numFilters*8, self.numFilters*4, self.numFilters*2]
+        filterList = [self.num_filters*8, self.num_filters*4, self.num_filters*2]
         self.phi_cross_hori = nn.ModuleList([nn.Conv2d(i, i, 1, 1, 0, bias=False) for i in filterList])
         self.theta_cross_hori = nn.ModuleList([nn.Conv2d(i, i, 1, 1, 0, bias=False) for i in filterList])
         self.phi_cross_vert = nn.ModuleList([nn.Conv2d(i, i, 1, 1, 0, bias=False) for i in filterList])
@@ -158,11 +158,11 @@ class MultiScaleCrossSelfAttentionPRGCN(nn.Module):
         self.theta_self_vert = nn.ModuleList([nn.Conv2d(i, i, 1, 1, 0, bias=False) for i in filterList])
         self.sigmoid = nn.Sigmoid()
         
-        self.addPositionEmbedding = cfg.MODEL.addPositionEmbedding
-        if self.addPositionEmbedding: 
-            self.featl1map_embedding = nn.Parameter(torch.randn(1, self.numFilters*2, self.height, self.width))
-            self.featl2map_embedding = nn.Parameter(torch.randn(1, self.numFilters*4, self.height//2, self.width//2))
-            self.featmap_embedding = nn.Parameter(torch.randn(1, self.numFilters*8, self.height//4, self.width//4))
+        self.add_position_embedding = cfg.MODEL.add_position_embedding
+        if self.add_position_embedding: 
+            self.featl1map_embedding = nn.Parameter(torch.randn(1, self.num_filters*2, self.height, self.width))
+            self.featl2map_embedding = nn.Parameter(torch.randn(1, self.num_filters*4, self.height//2, self.width//2))
+            self.featmap_embedding = nn.Parameter(torch.randn(1, self.num_filters*8, self.height//4, self.width//4))
     
     def attention(self, k, q, maps):
         b, c, h, w  = maps.size()
@@ -175,7 +175,7 @@ class MultiScaleCrossSelfAttentionPRGCN(nn.Module):
 
     def forward(self, ral1maps, ral2maps, ramaps, rel1maps, rel2maps, remaps):
         
-        if self.addPositionEmbedding: 
+        if self.add_position_embedding: 
             ral1maps = ral1maps + self.featl1map_embedding
             rel1maps += self.featl1map_embedding
             ral2maps += self.featl2map_embedding
@@ -238,11 +238,11 @@ class MultiScaleCrossSelfAttentionPRGCN(nn.Module):
 class MultiScaleCrossSelfAttentionClassification(nn.Module):
     def __init__(self, cfg, batchnorm=True, activation=nn.ReLU):
         super(MultiScaleCrossSelfAttentionClassification, self).__init__()
-        self.numGroupFrames = cfg.DATASET.numGroupFrames
-        self.numFilters = cfg.MODEL.numFilters
-        self.width = cfg.DATASET.heatmapSize
-        self.height = cfg.DATASET.heatmapSize
-        self.numKeypoints = cfg.DATASET.numKeypoints
+        self.num_group_frames = cfg.DATASET.num_group_frames
+        self.num_filters = cfg.MODEL.num_filters
+        self.width = cfg.DATASET.heatmap_size
+        self.height = cfg.DATASET.heatmap_size
+        self.num_keypoints = cfg.DATASET.num_keypoints
         
         assert cfg.MODEL.runClassification == True
         if cfg.MODEL.recTarget == 'action': 
@@ -251,22 +251,22 @@ class MultiScaleCrossSelfAttentionClassification(nn.Module):
             self.numClasses = 7
 
         self.decoderLayer3 = nn.Sequential(
-            BasicBlock2D(self.numFilters*8*4, self.numFilters*8, 3, 1, 1, batchnorm, activation),
-            BasicBlock2D(self.numFilters*8, self.numFilters*4, 3, 1, 1, batchnorm, activation),
+            BasicBlock2D(self.num_filters*8*4, self.num_filters*8, 3, 1, 1, batchnorm, activation),
+            BasicBlock2D(self.num_filters*8, self.num_filters*4, 3, 1, 1, batchnorm, activation),
             nn.Upsample(scale_factor=2.0, mode='bilinear', align_corners=True),
         )
         self.decoderLayer2 = nn.Sequential(
-            BasicBlock2D(self.numFilters*4*5, self.numFilters*4, 3, 1, 1, batchnorm, activation),
-            BasicBlock2D(self.numFilters*4, self.numFilters*2, 3, 1 ,1, batchnorm, activation),
+            BasicBlock2D(self.num_filters*4*5, self.num_filters*4, 3, 1, 1, batchnorm, activation),
+            BasicBlock2D(self.num_filters*4, self.num_filters*2, 3, 1 ,1, batchnorm, activation),
             nn.Upsample(scale_factor=2.0, mode='bilinear', align_corners=True),
         )
         self.decoderLayer1 = nn.Sequential(
-            BasicBlock2D(self.numFilters*2*5, self.numFilters*2, 3, 1, 1, batchnorm, activation),
-            BasicBlock2D(self.numFilters*2, self.numFilters, 3, 1, 1, batchnorm, activation),
-            nn.Conv2d(self.numFilters, self.numFilters, 1, 1, 0, bias=False),
+            BasicBlock2D(self.num_filters*2*5, self.num_filters*2, 3, 1, 1, batchnorm, activation),
+            BasicBlock2D(self.num_filters*2, self.num_filters, 3, 1, 1, batchnorm, activation),
+            nn.Conv2d(self.num_filters, self.num_filters, 1, 1, 0, bias=False),
         )
         self.head1 = self.model = nn.Sequential(
-            nn.Conv2d(self.numFilters, 64, kernel_size=3, stride=1, padding=1), nn.ReLU(), nn.MaxPool2d(kernel_size=2, stride=2),
+            nn.Conv2d(self.num_filters, 64, kernel_size=3, stride=1, padding=1), nn.ReLU(), nn.MaxPool2d(kernel_size=2, stride=2),
             nn.Conv2d(64, 128, kernel_size=3, stride=1, padding=1), nn.ReLU(), nn.MaxPool2d(kernel_size=2, stride=2),
             nn.Flatten(),
             nn.Linear(128 * 8 * 8, 512),
@@ -274,7 +274,7 @@ class MultiScaleCrossSelfAttentionClassification(nn.Module):
             nn.Linear(512, self.numClasses)
         )
 
-        filterList = [self.numFilters*8, self.numFilters*4, self.numFilters*2]
+        filterList = [self.num_filters*8, self.num_filters*4, self.num_filters*2]
         self.phi_cross_hori = nn.ModuleList([nn.Conv2d(i, i, 1, 1, 0, bias=False) for i in filterList])
         self.theta_cross_hori = nn.ModuleList([nn.Conv2d(i, i, 1, 1, 0, bias=False) for i in filterList])
         self.phi_cross_vert = nn.ModuleList([nn.Conv2d(i, i, 1, 1, 0, bias=False) for i in filterList])
@@ -285,11 +285,11 @@ class MultiScaleCrossSelfAttentionClassification(nn.Module):
         self.theta_self_vert = nn.ModuleList([nn.Conv2d(i, i, 1, 1, 0, bias=False) for i in filterList])
         self.sigmoid = nn.Sigmoid()
         
-        self.addPositionEmbedding = cfg.MODEL.addPositionEmbedding
-        if self.addPositionEmbedding: 
-            self.featl1map_embedding = nn.Parameter(torch.randn(1, self.numFilters*2, self.height, self.width))
-            self.featl2map_embedding = nn.Parameter(torch.randn(1, self.numFilters*4, self.height//2, self.width//2))
-            self.featmap_embedding = nn.Parameter(torch.randn(1, self.numFilters*8, self.height//4, self.width//4))
+        self.add_position_embedding = cfg.MODEL.add_position_embedding
+        if self.add_position_embedding: 
+            self.featl1map_embedding = nn.Parameter(torch.randn(1, self.num_filters*2, self.height, self.width))
+            self.featl2map_embedding = nn.Parameter(torch.randn(1, self.num_filters*4, self.height//2, self.width//2))
+            self.featmap_embedding = nn.Parameter(torch.randn(1, self.num_filters*8, self.height//4, self.width//4))
     
     def attention(self, k, q, maps):
         b, c, h, w  = maps.size()
@@ -302,7 +302,7 @@ class MultiScaleCrossSelfAttentionClassification(nn.Module):
 
     def forward(self, ral1maps, ral2maps, ramaps, rel1maps, rel2maps, remaps):
         
-        if self.addPositionEmbedding: 
+        if self.add_position_embedding: 
             ral1maps += self.featl1map_embedding
             rel1maps += self.featl1map_embedding
             ral2maps += self.featl2map_embedding
@@ -365,11 +365,11 @@ class MultiScaleCrossSelfAttentionClassification(nn.Module):
 class MultiScaleCrossSelfAttentionMultitask(nn.Module):
     def __init__(self, cfg, batchnorm=True, activation=nn.ReLU):
         super(MultiScaleCrossSelfAttentionMultitask, self).__init__()
-        self.numGroupFrames = cfg.DATASET.numGroupFrames
-        self.numFilters = cfg.MODEL.numFilters
-        self.width = cfg.DATASET.heatmapSize
-        self.height = cfg.DATASET.heatmapSize
-        self.numKeypoints = cfg.DATASET.numKeypoints
+        self.num_group_frames = cfg.DATASET.num_group_frames
+        self.num_filters = cfg.MODEL.num_filters
+        self.width = cfg.DATASET.heatmap_size
+        self.height = cfg.DATASET.heatmap_size
+        self.num_keypoints = cfg.DATASET.num_keypoints
         
         assert cfg.MODEL.runClassification == True
         if cfg.MODEL.recTarget == 'action': 
@@ -378,22 +378,22 @@ class MultiScaleCrossSelfAttentionMultitask(nn.Module):
             self.numClasses = 7
 
         self.decoderLayer3 = nn.Sequential(
-            BasicBlock2D(self.numFilters*8*4, self.numFilters*8, 3, 1, 1, batchnorm, activation),
-            BasicBlock2D(self.numFilters*8, self.numFilters*4, 3, 1, 1, batchnorm, activation),
+            BasicBlock2D(self.num_filters*8*4, self.num_filters*8, 3, 1, 1, batchnorm, activation),
+            BasicBlock2D(self.num_filters*8, self.num_filters*4, 3, 1, 1, batchnorm, activation),
             nn.Upsample(scale_factor=2.0, mode='bilinear', align_corners=True),
         )
         self.decoderLayer2 = nn.Sequential(
-            BasicBlock2D(self.numFilters*4*5, self.numFilters*4, 3, 1, 1, batchnorm, activation),
-            BasicBlock2D(self.numFilters*4, self.numFilters*2, 3, 1 ,1, batchnorm, activation),
+            BasicBlock2D(self.num_filters*4*5, self.num_filters*4, 3, 1, 1, batchnorm, activation),
+            BasicBlock2D(self.num_filters*4, self.num_filters*2, 3, 1 ,1, batchnorm, activation),
             nn.Upsample(scale_factor=2.0, mode='bilinear', align_corners=True),
         )
         self.decoderLayer1 = nn.Sequential(
-            BasicBlock2D(self.numFilters*2*5, self.numFilters*2, 3, 1, 1, batchnorm, activation),
-            BasicBlock2D(self.numFilters*2, self.numFilters, 3, 1, 1, batchnorm, activation),
+            BasicBlock2D(self.num_filters*2*5, self.num_filters*2, 3, 1, 1, batchnorm, activation),
+            BasicBlock2D(self.num_filters*2, self.num_filters, 3, 1, 1, batchnorm, activation),
         )
         # decoder heads
-        self.head0 = nn.Conv2d(self.numFilters, self.numKeypoints, 1, 1, 0, bias=False)
-        # self.fc1 = nn.Conv2d(self.numFilters, 1, 1, 1, 0, bias=False)
+        self.head0 = nn.Conv2d(self.num_filters, self.num_keypoints, 1, 1, 0, bias=False)
+        # self.fc1 = nn.Conv2d(self.num_filters, 1, 1, 1, 0, bias=False)
         # self.fc2 = nn.Linear(self.width * self.height, self.numClasses)
         
         self.head1 = self.model = nn.Sequential(
@@ -407,12 +407,12 @@ class MultiScaleCrossSelfAttentionMultitask(nn.Module):
         self.runSegmentation = cfg.MODEL.runSegmentation
         if cfg.MODEL.runSegmentation: 
             self.maskdecoderLayerRA = nn.Sequential(
-                BasicBlock2D(self.numFilters, 1, 3, 1, 1, batchnorm, activation),
-                BasicBlock2D(self.numFilters, 1, 1, 1, 0, batchnorm, activation),
+                BasicBlock2D(self.num_filters, 1, 3, 1, 1, batchnorm, activation),
+                BasicBlock2D(self.num_filters, 1, 1, 1, 0, batchnorm, activation),
             )
             self.maskdecoderLayerRE = nn.Sequential(
-                BasicBlock2D(self.numFilters, 1, 3, 1, 1, batchnorm, activation),
-                BasicBlock2D(self.numFilters, 1, 1, 1, 0, batchnorm, activation),
+                BasicBlock2D(self.num_filters, 1, 3, 1, 1, batchnorm, activation),
+                BasicBlock2D(self.num_filters, 1, 1, 1, 0, batchnorm, activation),
             )
 
         A = torch.tensor([
@@ -433,7 +433,7 @@ class MultiScaleCrossSelfAttentionMultitask(nn.Module):
         ], dtype=torch.float)
         self.gcn = PRGCN(cfg, A)
 
-        filterList = [self.numFilters*8, self.numFilters*4, self.numFilters*2]
+        filterList = [self.num_filters*8, self.num_filters*4, self.num_filters*2]
         self.phi_cross_hori = nn.ModuleList([nn.Conv2d(i, i, 1, 1, 0, bias=False) for i in filterList])
         self.theta_cross_hori = nn.ModuleList([nn.Conv2d(i, i, 1, 1, 0, bias=False) for i in filterList])
         self.phi_cross_vert = nn.ModuleList([nn.Conv2d(i, i, 1, 1, 0, bias=False) for i in filterList])
@@ -444,11 +444,11 @@ class MultiScaleCrossSelfAttentionMultitask(nn.Module):
         self.theta_self_vert = nn.ModuleList([nn.Conv2d(i, i, 1, 1, 0, bias=False) for i in filterList])
         self.sigmoid = nn.Sigmoid()
         
-        self.addPositionEmbedding = cfg.MODEL.addPositionEmbedding
-        if self.addPositionEmbedding: 
-            self.featl1map_embedding = nn.Parameter(torch.randn(1, self.numFilters*2, self.height, self.width))
-            self.featl2map_embedding = nn.Parameter(torch.randn(1, self.numFilters*4, self.height//2, self.width//2))
-            self.featmap_embedding = nn.Parameter(torch.randn(1, self.numFilters*8, self.height//4, self.width//4))
+        self.add_position_embedding = cfg.MODEL.add_position_embedding
+        if self.add_position_embedding: 
+            self.featl1map_embedding = nn.Parameter(torch.randn(1, self.num_filters*2, self.height, self.width))
+            self.featl2map_embedding = nn.Parameter(torch.randn(1, self.num_filters*4, self.height//2, self.width//2))
+            self.featmap_embedding = nn.Parameter(torch.randn(1, self.num_filters*8, self.height//4, self.width//4))
     
     def attention(self, k, q, maps):
         b, c, h, w  = maps.size()
@@ -461,7 +461,7 @@ class MultiScaleCrossSelfAttentionMultitask(nn.Module):
 
     def forward(self, ral1maps, ral2maps, ramaps, rel1maps, rel2maps, remaps):
         
-        if self.addPositionEmbedding: 
+        if self.add_position_embedding: 
             ral1maps = ral1maps + self.featl1map_embedding
             rel1maps += self.featl1map_embedding
             ral2maps += self.featl2map_embedding

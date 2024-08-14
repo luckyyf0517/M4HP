@@ -49,21 +49,19 @@ class MInterfaceHuPR(pl.LightningModule):
         self.save_preds = []
     
     def training_step(self, batch, batch_idx):
-        # random_indices = np.random.choice(
-        #     [i for i in range(self.cfg.TRAINING.batchSize * self.args.sampling_ratio)], 
-        #     size=self.cfg.TRAINING.batchSize, replace=False)
         mmwave_cfg = batch['mmwave_cfg']
         keypoints = batch['jointsGroup']
-        VRDAEmaps_hori = batch['VRDAEmap_hori']
-        VRDAEmaps_vert = batch['VRDAEmap_vert']
-        preds = self.model(VRDAEmaps_hori, VRDAEmaps_vert, mmwave_cfg)
-        loss, loss2, _, _ = self.lossComputer.computeLoss(preds, keypoints)
+        mmwave_bin_hori = batch['mmwave_bin_hori']
+        mmwave_bin_vert = batch['mmwave_bin_vert']
+        preds = self.model(mmwave_bin_hori, mmwave_bin_vert, mmwave_cfg)
+        loss, loss2, _, _ = self.loss_computer.computeLoss(preds, keypoints)
         self.log('train_loss/loss', loss, on_step=True, on_epoch=False, prog_bar=False, logger=True)
         self.log('train_loss/loss2', loss2, on_step=True, on_epoch=False, prog_bar=False, logger=True)
         # print info
         num_iter = len(self.trainer.train_dataloader)
         self.print('epoch {0:04d}, iter {1:04d} / {2:04d} | TOTAL loss: {3:0>10.4f}'. \
             format(self.current_epoch, batch_idx, num_iter, loss.item()))
+        exit()
         return loss
 
     def validation_step(self, batch, batch_idx):
@@ -149,43 +147,41 @@ class MInterfaceHuPR(pl.LightningModule):
         step = self.global_step
         if step % self.cfg.TRAINING.lrDecayIter == 0:
             if epoch < self.cfg.TRAINING.warmupEpoch:
-                return self.cfg.TRAIxNING.warmupGrowth
+                return self.cfg.TRAINING.warmupGrowth
             else:
                 return self.cfg.TRAINING.lrDecay
         else: 
             return 1
 
     def configure_loss(self):
-        self.lossComputer = LossComputer(self.cfg, self.device)
-        return
+        self.loss_computer = LossComputer(self.cfg, self.device)
 
     def load_model(self, cfg: dict) -> nn.Module:
-        assert cfg.MODEL.runClassification is not True, "This model is for HuPR regression task."
         self.model = HuPRNet(cfg)
-        if self.cfg.MODEL.preLoad:
-            # for hupr running task, load the pretrained model
-            print('Loading model dict from ' + cfg.MODEL.weightPath)
-            self.model.load_state_dict(torch.load(cfg.MODEL.weightPath)['model_state_dict'], strict=True)
+        # if self.cfg.MODEL.preLoad:
+        #     # for hupr running task, load the pretrained model
+        #     print('Loading model dict from ' + cfg.MODEL.weightPath)
+        #     self.model.load_state_dict(torch.load(cfg.MODEL.weightPath)['model_state_dict'], strict=True)
             
     def writeKeypoints(self, phase):
-        predFile = os.path.join(self.cfg.DATASET.logDir, self.args.version, f"{phase}_results.json")
+        predFile = os.path.join(self.cfg.DATASET.log_dir, self.args.version, f"{phase}_results.json")
         with open(predFile, 'w') as fp:
             json.dump(self.save_preds, fp, indent=4)
     
     def saveKeypoints(self, preds, bbox, image_id, predHeatmap=None):
         savePreds = []
-        visidx = np.ones((len(preds), self.cfg.DATASET.numKeypoints, 1))
+        visidx = np.ones((len(preds), self.cfg.DATASET.num_keypoints, 1))
         preds = np.concatenate((preds, visidx), axis=2)
-        predsigma = np.zeros((len(preds), self.cfg.DATASET.numKeypoints))
+        predsigma = np.zeros((len(preds), self.cfg.DATASET.num_keypoints))
         for j in range(len(preds)):
             block = {}
             block["category_id"] = 1
             block["image_id"] = int(image_id[j])
             block["score"] = 1.0
-            block["keypoints"] = preds[j].reshape(self.cfg.DATASET.numKeypoints*3).tolist()
+            block["keypoints"] = preds[j].reshape(self.cfg.DATASET.num_keypoints*3).tolist()
             if predHeatmap is not None:
-                for kpts in range(self.cfg.DATASET.numKeypoints):
-                    predsigma[j, kpts] = predHeatmap[j, kpts].var().item() * self.heatmapSize
+                for kpts in range(self.cfg.DATASET.num_keypoints):
+                    predsigma[j, kpts] = predHeatmap[j, kpts].var().item() * self.heatmap_size
                 block["sigma"] = predsigma[j].tolist()
             block_copy = block.copy()
             savePreds.append(block_copy)

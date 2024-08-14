@@ -52,8 +52,8 @@ class MInterfaceMultitask(pl.LightningModule):
     
     def training_step(self, batch, batch_idx):
         # random_indices = np.random.choice(
-        #     [i for i in range(self.cfg.TRAINING.batchSize * self.args.sampling_ratio)], 
-        #     size=self.cfg.TRAINING.batchSize, replace=False)
+        #     [i for i in range(self.cfg.TRAINING.batch_size * self.args.sampling_ratio)], 
+        #     size=self.cfg.TRAINING.batch_size, replace=False)
         mmwave_cfg = batch['mmwave_cfg']
         if self.cfg.MODEL.recTarget == 'action': 
             labels = batch['action_label']
@@ -197,24 +197,24 @@ class MInterfaceMultitask(pl.LightningModule):
             self.model.load_state_dict(torch.load(cfg.MODEL.weightPath)['model_state_dict'], strict=True)
             
     def writeKeypoints(self, phase):
-        predFile = os.path.join(self.cfg.DATASET.logDir, self.args.version, f"{phase}_results.json")
+        predFile = os.path.join(self.cfg.DATASET.log_dir, self.args.version, f"{phase}_results.json")
         with open(predFile, 'w') as fp:
             json.dump(self.save_preds, fp, indent=4)
     
     def saveKeypoints(self, preds, bbox, image_id, predHeatmap=None):
         savePreds = []
-        visidx = np.ones((len(preds), self.cfg.DATASET.numKeypoints, 1))
+        visidx = np.ones((len(preds), self.cfg.DATASET.num_keypoints, 1))
         preds = np.concatenate((preds, visidx), axis=2)
-        predsigma = np.zeros((len(preds), self.cfg.DATASET.numKeypoints))
+        predsigma = np.zeros((len(preds), self.cfg.DATASET.num_keypoints))
         for j in range(len(preds)):
             block = {}
             block["category_id"] = 1
             block["image_id"] = int(image_id[j])
             block["score"] = 1.0
-            block["keypoints"] = preds[j].reshape(self.cfg.DATASET.numKeypoints*3).tolist()
+            block["keypoints"] = preds[j].reshape(self.cfg.DATASET.num_keypoints*3).tolist()
             if predHeatmap is not None:
-                for kpts in range(self.cfg.DATASET.numKeypoints):
-                    predsigma[j, kpts] = predHeatmap[j, kpts].var().item() * self.heatmapSize
+                for kpts in range(self.cfg.DATASET.num_keypoints):
+                    predsigma[j, kpts] = predHeatmap[j, kpts].var().item() * self.heatmap_size
                 block["sigma"] = predsigma[j].tolist()
             block_copy = block.copy()
             savePreds.append(block_copy)

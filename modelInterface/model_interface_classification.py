@@ -50,8 +50,8 @@ class MInterfaceHuPRClassification(pl.LightningModule):
     
     def training_step(self, batch, batch_idx):
         # random_indices = np.random.choice(
-        #     [i for i in range(self.cfg.TRAINING.batchSize * self.args.sampling_ratio)], 
-        #     size=self.cfg.TRAINING.batchSize, replace=False)
+        #     [i for i in range(self.cfg.TRAINING.batch_size * self.args.sampling_ratio)], 
+        #     size=self.cfg.TRAINING.batch_size, replace=False)
         mmwave_cfg = batch['mmwave_cfg']
         if self.cfg.MODEL.recTarget == 'action': 
             labels = batch['action_label']

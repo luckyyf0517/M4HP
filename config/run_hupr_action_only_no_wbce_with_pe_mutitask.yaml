@@ -1,18 +1,18 @@
 DATASET:
   upsamplingFactor: 4 # from heatmaps (64 x 64) to RGB (256 x 256)
   duration: 300
-  heatmapSize: 64
+  heatmap_size: 64
   imgSize: 256
   imgHeatmapRatio: 4
   rangeSize: 64
   azimuthSize: 64
   elevationSize: 8
-  numKeypoints: 14
+  num_keypoints: 14
   numFrames: 8 # num of chirps in one frame to be processed
-  numGroupFrames: 8 # num of frames to be processed
+  num_group_frames: 8 # num of frames to be processed
   performDopplerFFT: True
   numChirps: 64 # num of chirps captured by radar sensors, should always be 16
-  logDir: '/root/log'
+  log_dir: '/root/log'
   dataDir: '/root/proc_data/HuPR_collected/' #'../radar_skeleton_estimation_iwr1843/data/20220623'
   trainName: [
     101, 102, 103, 104, 105, 106, 107, 108, 109, 
@@ -39,11 +39,11 @@ MODEL:
   recTarget: 'action'
   numClasses: 27
   preLoad: False
-  numFilters: 32
-  addPositionEmbedding: True
+  num_filters: 32
+  add_position_embedding: True
   weightPath: '/root/log/pretrained_weights/mscsa_prgcn.ckpt'
 TRAINING:
-  batchSize: 24
+  batch_size: 24
   epochs: 30
   lr: 0.0001
   warmupEpoch: -1
@@ -54,7 +54,7 @@ TRAINING:
   useWeight: False
   optimizer: "adam"
 TEST:
-  batchSize: 32
+  batch_size: 32
   plotImgDir: '/root/raw_data/demo/'
 SETUP:
-  numWorkers: 1
+  num_workers: 1

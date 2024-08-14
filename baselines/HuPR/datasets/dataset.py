@@ -30,12 +30,12 @@ class HuPR3D_raw(BaseDataset):
             raise ValueError('Invalid phase: {}'.format(phase))
         super(HuPR3D_raw, self).__init__(phase)
         self.numFrames = cfg.DATASET.numFrames
-        self.numGroupFrames = cfg.DATASET.numGroupFrames
+        self.num_group_frames = cfg.DATASET.num_group_frames
         self.numChirps = cfg.DATASET.numChirps
         self.r = cfg.DATASET.rangeSize
         self.w = cfg.DATASET.azimuthSize
         self.h = cfg.DATASET.elevationSize
-        self.numKeypoints = cfg.DATASET.numKeypoints
+        self.num_keypoints = cfg.DATASET.num_keypoints
         self.sampling_ratio = args.sampling_ratio
         self.dirRoot = cfg.DATASET.dataDir
         self.idxToJoints = cfg.DATASET.idxToJoints
@@ -84,7 +84,7 @@ class HuPR3D_raw(BaseDataset):
         coco_eval.params.useSegm = None
         stats_names = ['AP', 'Ap .5', 'AP .75', 'AP (M)', 'AP (L)', 'AR', 'AR .5', 'AR .75', 'AR (M)', 'AR (L)']
         keypoint_list = []
-        for i in range(self.numKeypoints):
+        for i in range(self.num_keypoints):
             coco_eval.evaluate(i)
             coco_eval.accumulate()
             coco_eval.summarize()
@@ -92,7 +92,7 @@ class HuPR3D_raw(BaseDataset):
             for ind, name in enumerate(stats_names):
                 info_str.append((name, coco_eval.stats[ind]))
             keypoint_list.append(info_str[0][1])
-        # for i in range(self.numKeypoints):
+        # for i in range(self.num_keypoints):
         #     print('%s: %.3f' % (self.idxToJoints[i], keypoint_list[i]))
         return keypoint_list # return the value of AP
     
@@ -130,9 +130,9 @@ class HuPR3D_raw(BaseDataset):
         objs = self.coco.loadAnns(annIds)
         rec = []
         for obj in objs:
-            joints_2d = np.zeros((self.numKeypoints, 2), dtype=np.float64)
-            joints_2d_vis = np.zeros((self.numKeypoints, 2), dtype=np.float64)
-            for ipt in range(self.numKeypoints):
+            joints_2d = np.zeros((self.num_keypoints, 2), dtype=np.float64)
+            joints_2d_vis = np.zeros((self.num_keypoints, 2), dtype=np.float64)
+            for ipt in range(self.num_keypoints):
                 joints_2d[ipt, 0] = obj['keypoints'][ipt * 3 + 0]
                 joints_2d[ipt, 1] = obj['keypoints'][ipt * 3 + 1]
                 t_vis = obj['keypoints'][ipt * 3 + 2]
@@ -197,8 +197,8 @@ class HuPR3D_raw(BaseDataset):
         
         tic = time.time()        
         duration = self.length_map[seqName]
-        startFrame = int(frameId) - self.numGroupFrames//2 
-        endFrame = int(frameId) + self.numGroupFrames//2
+        startFrame = int(frameId) - self.num_group_frames//2 
+        endFrame = int(frameId) + self.num_group_frames//2
         if startFrame < 0: 
             endFrame -= startFrame
             startFrame = 0

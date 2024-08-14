@@ -10,30 +10,29 @@ class LossComputer():
     def __init__(self, cfg, device):
         self.device = device
         self.cfg = cfg
-        self.numFrames = self.cfg.DATASET.numFrames
-        self.numGroupFrames = self.cfg.DATASET.numGroupFrames
-        self.numKeypoints = self.cfg.DATASET.numKeypoints
-        self.heatmapSize = self.width = self.height = self.cfg.DATASET.heatmapSize
-        self.imgSize = self.imgWidth = self.imgHeight = self.cfg.DATASET.imgSize
-        self.lossDecay = self.cfg.TRAINING.lossDecay
-        self.useWeight = self.cfg.TRAINING.useWeight
+        self.num_group_frames = self.cfg.DATASET.num_group_frames
+        self.num_keypoints = self.cfg.DATASET.num_keypoints
+        self.heatmap_size = self.width = self.height = self.cfg.DATASET.heatmap_size
+        self.imgSize = self.imgWidth = self.imgHeight = self.cfg.DATASET.crop_size
+        self.lossDecay = self.cfg.TRAINING.lr_decay
+        self.useWeight = self.cfg.TRAINING.use_weight
         self.alpha = 0.0
         self.beta = 1.0
         self.bce = nn.BCELoss()
             
     def computeLoss(self, preds, gt):
         b = gt.size(0)
-        heatmaps = torch.zeros((b, self.numKeypoints, self.height, self.width))
-        gtKpts = torch.zeros((b, self.numKeypoints, 2))
+        heatmaps = torch.zeros((b, self.num_keypoints, self.height, self.width))
+        gtKpts = torch.zeros((b, self.num_keypoints, 2))
         for i in range(len(gt)):
-            heatmap, gtKpt = generateTarget(gt[i], self.numKeypoints, self.heatmapSize, self.imgSize)
+            heatmap, gtKpt = generateTarget(gt[i], self.num_keypoints, self.heatmap_size, self.imgSize)
             heatmaps[i, :] = torch.tensor(heatmap)
             gtKpts[i] = torch.tensor(gtKpt)
         preds, preds2 = preds      
-        loss1 = self.computeBCESingleFrame(preds.view(-1, self.numKeypoints, self.height, self.width), heatmaps)
-        preds = preds.permute(0, 2, 1, 3, 4).reshape(-1, self.numKeypoints, self.height, self.width)
-        loss2 = self.computeBCESingleFrame(preds2.view(-1, self.numKeypoints, self.height, self.width), heatmaps)
-        preds2 = preds2.permute(0, 2, 1, 3, 4).reshape(-1, self.numKeypoints, self.height, self.width)
+        loss1 = self.computeBCESingleFrame(preds.view(-1, self.num_keypoints, self.height, self.width), heatmaps)
+        preds = preds.permute(0, 2, 1, 3, 4).reshape(-1, self.num_keypoints, self.height, self.width)
+        loss2 = self.computeBCESingleFrame(preds2.view(-1, self.num_keypoints, self.height, self.width), heatmaps)
+        preds2 = preds2.permute(0, 2, 1, 3, 4).reshape(-1, self.num_keypoints, self.height, self.width)
         if self.alpha < 1.0:
             self.alpha += self.lossDecay
             self.beta -= self.lossDecay

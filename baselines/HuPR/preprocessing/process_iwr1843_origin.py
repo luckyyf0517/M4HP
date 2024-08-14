@@ -28,7 +28,7 @@ class RadarObject():
         self.numChirp = 64 * 3 
         self.idxProcChirp = 64
         self.numGroupChirp = 4
-        self.numKeypoints = 14 
+        self.num_keypoints = 14 
         self.xIndices = [-45, -30, -15, 0, 15, 30, 45]
         self.yIndices = [i * 10 for i in range(10)]
         self.initialize(numGroup)
@@ -173,7 +173,7 @@ class RadarObject():
         return dataFFTGroup  
 
     def saveDataAsFigure(self, img, joints, output, visDirName, idxFrame, output2=None):
-        heatmap = PlotHeatmaps(joints, self.numKeypoints)
+        heatmap = PlotHeatmaps(joints, self.num_keypoints)
         PlotMaps(visDirName, self.xIndices, self.yIndices, 
         idxFrame, output, img, heatmap, output2)
     

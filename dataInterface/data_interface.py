@@ -20,13 +20,15 @@ import pickle as pkl
 import pytorch_lightning as pl
 from copy import deepcopy
 import torch
-from torch.utils.data import DataLoader, DistributedSampler, Sampler
+from torch.utils.data import DataLoader, DistributedSampler, Sampler, ConcatDataset
 import torch.distributed as dist
+
+from M4HPtools.M4HPdataset import M4HPSingleDataset
 
 
 class DInterface(pl.LightningDataModule):
 
-    def __init__(self, batch_size=16, num_workers=8, dataset=None, cfg=None, args=None):
+    def __init__(self, batch_size=16, num_workers=8, cfg=None, args=None):
         super().__init__()
         
         self.num_workers = num_workers
@@ -34,8 +36,6 @@ class DInterface(pl.LightningDataModule):
         
         self.cfg = cfg
         self.args = args
-
-        self.load_data_module(dataset)
 
     def setup(self, stage=None):
         if stage == 'fit':
@@ -47,66 +47,67 @@ class DInterface(pl.LightningDataModule):
             raise ValueError(f"Invalid stage: {stage}")
 
     def generate_dataset(self, stage):
-        return self.Dataset(phase=stage, cfg=self.cfg, args=self.args)
+        dataset = ConcatDataset([
+            M4HPSingleDataset(phase=stage, cfg=self.cfg, seq_name=seq_name) 
+            for seq_name in self.cfg.DATASET[stage + '_seqs']])
+        # return self.Dataset(phase=stage, cfg=self.cfg, args=self.args)
+        return dataset
 
     def train_dataloader(self):
-        sampler = SubsetShuffleSampler(self.train_set, shuffle=True)
+        # sampler = SubsetShuffleSampler(self.train_set, shuffle=True)
         return DataLoader(
             self.train_set, 
             batch_size=self.batch_size,
             num_workers=self.num_workers, 
-            # shuffle=True, 
-            sampler=sampler,
+            shuffle=True, 
+            # sampler=sampler,
             persistent_workers=True, 
             pin_memory=True)
 
     def val_dataloader(self):
-        sampler = SubsetShuffleSampler(self.val_set, shuffle=False)
+        # sampler = SubsetShuffleSampler(self.val_set, shuffle=False)
         return DataLoader(
             self.val_set, 
             batch_size=self.batch_size, 
             num_workers=self.num_workers, 
-            # shuffle=False, 
-            sampler=sampler,
+            shuffle=False, 
+            # sampler=sampler,
             persistent_workers=True, 
             pin_memory=True)
 
     def test_dataloader(self):
-        sampler = SubsetShuffleSampler(self.test_set, shuffle=False)
+        # sampler = SubsetShuffleSampler(self.test_set, shuffle=False)
         return DataLoader(
             self.test_set, 
             batch_size=self.batch_size, 
             num_workers=self.num_workers, 
-            # shuffle=False, 
-            sampler=sampler,
+            shuffle=False, 
+            # sampler=sampler,
             pin_memory=True)
 
-    def load_data_module(self, dataset):
-        self.Dataset = dataset
-        
 
-class SubsetShuffleSampler(DistributedSampler):
-    def __init__(self, dataset, shuffle=True):
-        super().__init__(deepcopy(dataset)) # compute self.total_size and self.num_replicas
-        self.shuffle = shuffle
-        self.indices = [i for i in range(len(dataset))]
+# class SubsetShuffleSampler(DistributedSampler):
+#     def __init__(self, dataset, shuffle=True):
+#         super().__init__(deepcopy(dataset)) # compute self.total_size and self.num_replicas
+#         self.shuffle = shuffle
+#         self.indices = [i for i in range(len(dataset))]
 
-    def __iter__(self):
-        # split the indices for each gpu
-        if self.rank != self.num_replicas - 1:
-            indices = self.indices[self.rank * self.total_size // self.num_replicas: (self.rank + 1) * self.total_size// self.num_replicas]
-        else:
-            indices = self.indices[self.rank * self.total_size // self.num_replicas: ]
+#     def __iter__(self):
+#         # split the indices for each gpu
+#         if self.rank != self.num_replicas - 1:
+#             indices = self.indices[self.rank * self.total_size // self.num_replicas: (self.rank + 1) * self.total_size// self.num_replicas]
+#         else:
+#             indices = self.indices[self.rank * self.total_size // self.num_replicas: ]
         
-        try:
-            assert len(self)==len(indices)
-        except:
-            raise ValueError(f"Length not corresponding: {len(self), len(indices), len(self.indices), self.rank}")
+#         try:
+#             assert len(self)==len(indices)
+#         except:
+#             raise ValueError(f"Length not corresponding: {len(self), len(indices), len(self.indices), self.rank}")
         
-        if self.shuffle: 
-            random.shuffle(indices)
+#         if self.shuffle: 
+#             random.shuffle(indices)
         
-        return iter(indices)
+#         return iter(indices)
 
     def __len__(self):
         return self.total_size // self.num_replicas

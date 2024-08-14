@@ -5,8 +5,8 @@
 **/saved_files/*
 */CLI_LogFile.txt
 
-raw_data
-proc_data
+M4HPDataset
+
 viz/
 viz
 log/

@@ -1,0 +1,68 @@
+MODEL: 
+  pretrain_path: None
+  num_filters: 32
+  add_position_embedding: False
+TRAINING:
+  batch_size: 24
+  epochs: 200
+  lr: 0.0001
+  warmup_epoch: -1
+  warmup_growth: 1.005
+  lr_decay: 0.999
+  lr_decayIter: 2000
+  loss_decay: -1
+  use_weight: False
+  optimizer: "adam"
+DATASET:
+  root_dir: M4HPDataset
+  log_dir: '/root/log'
+  # Image 
+  img_size: 640, 576
+  crop_size: 256
+  img_type: imgs
+  # Radar
+  num_range_bins: 64
+  num_doppler_bins: 64
+  num_azimuth_bins: 64
+  num_elevate_bins: 8
+  heatmap_size: 64
+  # Annotation
+  num_keypoints: 14
+  num_frames: 8 # num of chirps in one frame to be processed
+  num_group_frames: 8 # num of frames to be processed
+  perform_doppler_fft: True
+  num_chirps: 64 # num of chirps captured by radar sensors, should always be 16
+  train_seqs: [
+    RandomP01R01, RandomP01R02, RandomP01R03, RandomP01R04, 
+    RandomP01R05, RandomP01R06, RandomP01R07, RandomP01R08,
+    RandomP01R09, RandomP01R10, RandomP01R11, RandomP01R12,
+    RandomP01R13, RandomP01R14, RandomP01R15, RandomP01R16,
+    RandomP01R17, RandomP01R18, RandomP01R19, RandomP01R20,
+    RandomP02R01, RandomP02R02, RandomP02R03, RandomP02R04,
+    RandomP02R05, RandomP02R06, RandomP02R07, RandomP02R08,
+    RandomP02R09, RandomP02R10, RandomP02R11, RandomP02R12,
+    RandomP02R13, RandomP02R14, RandomP02R15, RandomP02R16,
+    RandomP02R17, RandomP02R18, RandomP02R19, RandomP02R20,
+    RandomP03R01, RandomP03R02, RandomP03R03, RandomP03R04,
+    RandomP03R05, RandomP03R06, RandomP03R07, RandomP03R08,
+    RandomP03R09, RandomP03R10, RandomP03R11, RandomP03R12,
+    RandomP03R13, RandomP03R14, RandomP03R15, RandomP03R16,
+    RandomP03R17, RandomP03R18, RandomP03R19, RandomP03R20,
+  ]
+  val_seqs: [
+    RandomP04R01, RandomP04R02, RandomP04R03, RandomP04R04,
+    RandomP04R05, RandomP04R06, RandomP04R07, RandomP04R08,
+    RandomP04R09, RandomP04R10, RandomP04R11, RandomP04R12,
+    RandomP04R13, RandomP04R14, RandomP04R15, RandomP04R16,
+    RandomP04R17, RandomP04R18, RandomP04R19, RandomP04R20,
+  ]
+  test_seqs: [
+    RandomP04R01, RandomP04R02, RandomP04R03, RandomP04R04,
+    RandomP04R05, RandomP04R06, RandomP04R07, RandomP04R08,
+    RandomP04R09, RandomP04R10, RandomP04R11, RandomP04R12,
+    RandomP04R13, RandomP04R14, RandomP04R15, RandomP04R16,
+    RandomP04R17, RandomP04R18, RandomP04R19, RandomP04R20,
+  ]
+  idxToJoints: ["R_Hip", "R_Knee", "R_Ankle", "L_Hip", "L_Knee", "L_Ankle", "Neck", "Head", "L_Shoulder", "L_Elbow", "L_Wrist", "R_Shoulder", "R_Elbow", "R_Wrist"]
+SETUP:
+  num_workers: 1

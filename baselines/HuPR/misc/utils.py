@@ -3,7 +3,7 @@ import numpy as np
 import torch.nn as nn
 import torch.nn.functional as F
 
-def generateTarget(joints, numKeypoints, hSize, iSize, isCoord=False, sigmas=None):
+def generateTarget(joints, num_keypoints, hSize, iSize, isCoord=False, sigmas=None):
     '''
     :param joints:  [num_joints, 3]
     :param joints_vis: [num_joints, 3]
@@ -13,20 +13,20 @@ def generateTarget(joints, numKeypoints, hSize, iSize, isCoord=False, sigmas=Non
         sigma = 2
     elif hSize == 128:
         sigma = 3
-    heatmapSize = np.array([hSize, hSize])
+    heatmap_size = np.array([hSize, hSize])
     imgSize = np.array([iSize, iSize])
 
-    target = np.zeros((numKeypoints,
-                       heatmapSize[1],
-                       heatmapSize[0]),
+    target = np.zeros((num_keypoints,
+                       heatmap_size[1],
+                       heatmap_size[0]),
                       dtype=np.float32)
 
-    targetKpts = np.zeros((numKeypoints, 2))
+    targetKpts = np.zeros((num_keypoints, 2))
 
     tmp_size = sigma * 3
 
-    for joint_id in range(numKeypoints):
-        feat_stride = imgSize / heatmapSize
+    for joint_id in range(num_keypoints):
+        feat_stride = imgSize / heatmap_size
         if sigmas is not None:
             sigma = sigmas[joint_id] * 10
             tmp_size = sigma * 3
@@ -39,7 +39,7 @@ def generateTarget(joints, numKeypoints, hSize, iSize, isCoord=False, sigmas=Non
         # Check that any part of the gaussian is in-bounds
         ul = [int(mu_x - tmp_size), int(mu_y - tmp_size)]
         br = [int(mu_x + tmp_size + 1), int(mu_y + tmp_size + 1)]
-        if ul[0] >= heatmapSize[0] or ul[1] >= heatmapSize[1] or br[0] < 0 or br[1] < 0:
+        if ul[0] >= heatmap_size[0] or ul[1] >= heatmap_size[1] or br[0] < 0 or br[1] < 0:
             continue
 
         # # Generate gaussian
@@ -51,11 +51,11 @@ def generateTarget(joints, numKeypoints, hSize, iSize, isCoord=False, sigmas=Non
         g = np.exp(- ((x - x0) ** 2 + (y - y0) ** 2) / (2 * sigma ** 2))
 
         # Usable gaussian range
-        g_x = max(0, -ul[0]), min(br[0], heatmapSize[0]) - ul[0]
-        g_y = max(0, -ul[1]), min(br[1], heatmapSize[1]) - ul[1]
+        g_x = max(0, -ul[0]), min(br[0], heatmap_size[0]) - ul[0]
+        g_y = max(0, -ul[1]), min(br[1], heatmap_size[1]) - ul[1]
         # Image range
-        img_x = max(0, ul[0]), min(br[0], heatmapSize[0])
-        img_y = max(0, ul[1]), min(br[1], heatmapSize[1])
+        img_x = max(0, ul[0]), min(br[0], heatmap_size[0])
+        img_y = max(0, ul[1]), min(br[1], heatmap_size[1])
 
         target[joint_id][img_y[0]:img_y[1], img_x[0]:img_x[1]] = \
             g[g_y[0]:g_y[1], g_x[0]:g_x[1]]

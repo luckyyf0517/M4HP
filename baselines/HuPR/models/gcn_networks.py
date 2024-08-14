@@ -4,12 +4,12 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 class GCN_layers(nn.Module):
-    def __init__(self, in_features, out_features, numKeypoints, bias=True):
+    def __init__(self, in_features, out_features, num_keypoints, bias=True):
         super(GCN_layers, self).__init__()
         self.bias = bias
         self.weight = nn.Parameter(torch.FloatTensor(out_features, in_features))
         if bias:
-            self.bias = nn.Parameter(torch.FloatTensor(out_features, numKeypoints))
+            self.bias = nn.Parameter(torch.FloatTensor(out_features, num_keypoints))
         else:
             self.register_parameter('bias', None)
         self.reset_parameters()
@@ -32,26 +32,26 @@ class GCN_layers(nn.Module):
 class PRGCN(nn.Module):
     def __init__(self, cfg, A):
         super(PRGCN, self).__init__()
-        self.numGroupFrames = cfg.DATASET.numGroupFrames
-        self.numFilters = cfg.MODEL.numFilters
-        self.width = cfg.DATASET.heatmapSize
-        self.height = cfg.DATASET.heatmapSize
-        self.numKeypoints = cfg.DATASET.numKeypoints
+        self.num_group_frames = cfg.DATASET.num_group_frames
+        self.num_filters = cfg.MODEL.num_filters
+        self.width = cfg.DATASET.heatmap_size
+        self.height = cfg.DATASET.heatmap_size
+        self.num_keypoints = cfg.DATASET.num_keypoints
         self.featureSize = (self.height//2) * (self.width//2)
-        self.L1 = GCN_layers(self.featureSize, self.featureSize, self.numKeypoints)
-        self.L2 = GCN_layers(self.featureSize, self.featureSize, self.numKeypoints)
-        self.L3 = GCN_layers(self.featureSize, self.featureSize, self.numKeypoints)
+        self.L1 = GCN_layers(self.featureSize, self.featureSize, self.num_keypoints)
+        self.L2 = GCN_layers(self.featureSize, self.featureSize, self.num_keypoints)
+        self.L3 = GCN_layers(self.featureSize, self.featureSize, self.num_keypoints)
         self.A = A
         self.relu = nn.ReLU()
         self.sigmoid = nn.Sigmoid()
 
     def generate_node_feature(self, x):
         x = F.interpolate(x, scale_factor=0.5, mode='bilinear', align_corners=True)
-        x = x.reshape(-1, self.numKeypoints, self.featureSize).permute(0, 2, 1)
+        x = x.reshape(-1, self.num_keypoints, self.featureSize).permute(0, 2, 1)
         return x
 
     def gcn_forward(self, x):
-        #x: (B, numFilters, numkeypoints)
+        #x: (B, num_filters, num_keypoints)
         x2 = self.relu(self.L1(x, self.A))
         x3 = self.relu(self.L2(x2, self.A))
         keypoints = self.L3(x3, self.A)
@@ -59,6 +59,6 @@ class PRGCN(nn.Module):
 
     def forward(self, x):
         nodeFeat = self.generate_node_feature(x)
-        heatmap = self.gcn_forward(nodeFeat).reshape(-1, self.numKeypoints, (self.height//2), (self.width//2))
+        heatmap = self.gcn_forward(nodeFeat).reshape(-1, self.num_keypoints, (self.height//2), (self.width//2))
         heatmap = F.interpolate(heatmap, scale_factor=2.0, mode='bilinear', align_corners=True)
         return torch.sigmoid(heatmap).unsqueeze(1)

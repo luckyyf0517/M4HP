@@ -18,11 +18,9 @@ def parse_arg():
                         help='random seed (default: 0)')
     parser.add_argument('--version', type=str, default='test', metavar='B',
                         help='directory of saving/loading')
-    parser.add_argument('--visDir', type=str, default='/root/viz', metavar='B',
-                        help='directory of visualization')
     parser.add_argument('--config', type=str, default='mscsa_prgcn_demo.yaml', metavar='B',
                         help='directory of visualization')
-    parser.add_argument('--gpuIDs', default=[0], type=eval, help='IDs of GPUs to use')                        
+    parser.add_argument('--gpu', default=[0], type=eval, help='IDs of GPUs to use')                        
     parser.add_argument('--eval', action="store_true")
     parser.add_argument('-sr', '--sampling_ratio', type=int, default=1, help='sampling ratio for training/test (default: 1)')
     parser.add_argument('--keypoints', action='store_true', help='print out the APs of all keypoints')
