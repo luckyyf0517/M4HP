@@ -33,7 +33,7 @@ if __name__ == "__main__":
         cfg = yaml.safe_load(f)
         cfg = obj(cfg)
     trigger = Runner(args, cfg)
-    vis = False if args.visDir == 'none' else True
+    vis = False if args.vis_dir == 'none' else True
     if args.eval:
         trigger.loadModelWeight('model_best')
         trigger.eval(visualization=vis)

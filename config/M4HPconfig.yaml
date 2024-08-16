@@ -16,10 +16,12 @@ TRAINING:
 DATASET:
   root_dir: M4HPDataset
   log_dir: '/root/log'
+  vis_dir: '/root/vis'
   # Image 
   img_size: 640, 576
   crop_size: 256
   img_type: imgs
+  img_heatmap_ratio: 4
   # Radar
   num_range_bins: 64
   num_doppler_bins: 64
@@ -57,12 +59,12 @@ DATASET:
     RandomP04R17, RandomP04R18, RandomP04R19, RandomP04R20,
   ]
   test_seqs: [
-    RandomP04R01, RandomP04R02, RandomP04R03, RandomP04R04,
-    RandomP04R05, RandomP04R06, RandomP04R07, RandomP04R08,
-    RandomP04R09, RandomP04R10, RandomP04R11, RandomP04R12,
-    RandomP04R13, RandomP04R14, RandomP04R15, RandomP04R16,
-    RandomP04R17, RandomP04R18, RandomP04R19, RandomP04R20,
+    RandomP04R01  #, RandomP04R02, RandomP04R03, RandomP04R04,
+    # RandomP04R05, RandomP04R06, RandomP04R07, RandomP04R08,
+    # RandomP04R09, RandomP04R10, RandomP04R11, RandomP04R12,
+    # RandomP04R13, RandomP04R14, RandomP04R15, RandomP04R16,
+    # RandomP04R17, RandomP04R18, RandomP04R19, RandomP04R20,
   ]
-  idxToJoints: ["R_Hip", "R_Knee", "R_Ankle", "L_Hip", "L_Knee", "L_Ankle", "Neck", "Head", "L_Shoulder", "L_Elbow", "L_Wrist", "R_Shoulder", "R_Elbow", "R_Wrist"]
+  idx_to_joints: ["R_Hip", "R_Knee", "R_Ankle", "L_Hip", "L_Knee", "L_Ankle", "Neck", "Head", "L_Shoulder", "L_Elbow", "L_Wrist", "R_Shoulder", "R_Elbow", "R_Wrist"]
 SETUP:
-  num_workers: 1
+  num_workers: 8

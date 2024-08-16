@@ -38,7 +38,7 @@ class HuPR3D_raw(BaseDataset):
         self.num_keypoints = cfg.DATASET.num_keypoints
         self.sampling_ratio = args.sampling_ratio
         self.dirRoot = cfg.DATASET.dataDir
-        self.idxToJoints = cfg.DATASET.idxToJoints
+        self.idx_to_joints = cfg.DATASET.idx_to_joints
         self.random = shuffle
         self.cfg = cfg
 
@@ -93,7 +93,7 @@ class HuPR3D_raw(BaseDataset):
                 info_str.append((name, coco_eval.stats[ind]))
             keypoint_list.append(info_str[0][1])
         # for i in range(self.num_keypoints):
-        #     print('%s: %.3f' % (self.idxToJoints[i], keypoint_list[i]))
+        #     print('%s: %.3f' % (self.idx_to_joints[i], keypoint_list[i]))
         return keypoint_list # return the value of AP
     
     def evaluate(self, loadDir):

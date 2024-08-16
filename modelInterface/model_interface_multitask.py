@@ -63,7 +63,7 @@ class MInterfaceMultitask(pl.LightningModule):
         VRDAEmaps_hori = batch['VRDAEmap_hori']
         VRDAEmaps_vert = batch['VRDAEmap_vert']
         heatmap, gcn_heatmap, cls_preds = self.model(VRDAEmaps_hori, VRDAEmaps_vert, mmwave_cfg)
-        loss, loss2, _, _ = self.lossComputer.computeLoss((heatmap, gcn_heatmap), keypoints)
+        loss, loss2, _, _ = self.loss_computer.compute_loss((heatmap, gcn_heatmap), keypoints)
         self.log('train_loss/loss', loss, on_step=True, on_epoch=False, prog_bar=False, logger=True)
         self.log('train_loss/loss2', loss2, on_step=True, on_epoch=False, prog_bar=False, logger=True)
         loss_cls = self.lossCls(cls_preds * 10, labels) * 0.1
@@ -86,7 +86,7 @@ class MInterfaceMultitask(pl.LightningModule):
         VRDAEmaps_hori = batch['VRDAEmap_hori']
         VRDAEmaps_vert = batch['VRDAEmap_vert']
         heatmap, gcn_heatmap, cls_preds = self.model(VRDAEmaps_hori, VRDAEmaps_vert, mmwave_cfg)
-        loss, loss2, preds2d, keypoints2d = self.lossComputer.computeLoss((heatmap, gcn_heatmap), keypoints)
+        loss, loss2, preds2d, keypoints2d = self.loss_computer.compute_loss((heatmap, gcn_heatmap), keypoints)
         self.log('validation_loss/loss', loss, on_step=False, on_epoch=True, prog_bar=False, logger=True)
         self.log('validation_loss/loss2', loss2, on_step=False, on_epoch=True, prog_bar=False, logger=True)
         loss_cls = self.lossCls(cls_preds * 10, labels) * 0.1
@@ -96,7 +96,7 @@ class MInterfaceMultitask(pl.LightningModule):
         self.print('\033[93m' + 'epoch {0:04d}, iter {1:04d} / {2:04d} | TOTAL loss: {3:0>10.4f}'. \
             format(self.current_epoch, batch_idx, num_iter, loss.item()) + '\033[0m')
         # skip computing ap in validation
-        # self.save_preds += self.saveKeypoints(preds2d * self.cfg.DATASET.imgHeatmapRatio, bbox, imageId)
+        # self.save_preds += self.save_keypoints(preds2d * self.cfg.DATASET.img_heatmap_ratio, bbox, imageId)
         self.update_confusion_matrix(cls_preds, labels)
         return loss + loss_cls
 
@@ -112,14 +112,14 @@ class MInterfaceMultitask(pl.LightningModule):
         VRDAEmaps_hori = batch['VRDAEmap_hori']
         VRDAEmaps_vert = batch['VRDAEmap_vert']
         heatmap, gcn_heatmap, cls_preds = self.model(VRDAEmaps_hori, VRDAEmaps_vert, mmwave_cfg)
-        _, _, preds2d, keypoints2d = self.lossComputer.computeLoss((heatmap, gcn_heatmap), keypoints)
+        _, _, preds2d, keypoints2d = self.loss_computer.compute_loss((heatmap, gcn_heatmap), keypoints)
         # print info
         num_iter = len(self.trainer.test_dataloaders)
         self.print('\033[93m' + 'batch {0:04d} / {1:04d}'.format(batch_idx, num_iter) + '\033[0m')
         # draw with GT
-        plotHumanPose(preds2d * self.cfg.DATASET.imgHeatmapRatio, imageIdx=imageId, cfg=self.cfg, visDir=os.path.join(self.args.visDir, self.args.version))
+        plotHumanPose(preds2d * self.cfg.DATASET.img_heatmap_ratio, imageIdx=imageId, cfg=self.cfg, vis_dir=os.path.join(self.args.vis_dir, self.args.version))
         # evaluation (by method in dataset)
-        self.save_preds += self.saveKeypoints(preds2d * self.cfg.DATASET.imgHeatmapRatio, bbox, imageId)
+        self.save_preds += self.save_keypoints(preds2d * self.cfg.DATASET.img_heatmap_ratio, bbox, imageId)
         self.update_confusion_matrix(cls_preds, labels)
     
     def on_train_end(self):
@@ -136,10 +136,10 @@ class MInterfaceMultitask(pl.LightningModule):
     def compute_evaluate_metrics(self, phase='test'): 
         
         if phase == 'test': 
-            self.writeKeypoints(phase=phase)
+            self.write_keypoints(phase=phase)
             eval_dataset = self.trainer.test_dataloaders.dataset
             accAPs = eval_dataset.evaluateEach(loadDir=os.path.join('/root/log', self.args.version))
-            for jointName, accAP in zip(self.cfg.DATASET.idxToJoints, accAPs):
+            for jointName, accAP in zip(self.cfg.DATASET.idx_to_joints, accAPs):
                 self.log(phase + '_ap/' + jointName, accAP, on_step=False, on_epoch=True, prog_bar=False, logger=True, sync_dist_group=True)
             accAP = eval_dataset.evaluate(loadDir=os.path.join('/root/log', self.args.version))
             self.log(phase + '_ap/AP', accAP['AP'], on_step=False, on_epoch=True, prog_bar=False, logger=True, sync_dist_group=True)
@@ -160,12 +160,12 @@ class MInterfaceMultitask(pl.LightningModule):
         
     def configure_optimizers(self):
         # Optimizer
-        self.stepSize = self.cfg.TRAINING.warmupEpoch
-        # self.stepSize = len(self.trainer.train_dataloader) * self.cfg.TRAINING.warmupEpoch
-        if self.cfg.TRAINING.warmupEpoch == -1: 
+        self.step_size = self.cfg.TRAINING.warmup_epoch
+        # self.step_size = len(self.trainer.train_dataloader) * self.cfg.TRAINING.warmup_epoch
+        if self.cfg.TRAINING.warmup_epoch == -1: 
             LR = self.cfg.TRAINING.lr  
         else: 
-            LR = self.cfg.TRAINING.lr / (self.cfg.TRAINING.warmupGrowth ** self.stepSize)
+            LR = self.cfg.TRAINING.lr / (self.cfg.TRAINING.warmup_growth ** self.step_size)
         if self.cfg.TRAINING.optimizer == 'sgd':
             optimizer = optim.SGD(self.model.parameters(), lr=LR, momentum=0.90, weight_decay=1e-4)
         elif self.cfg.TRAINING.optimizer == 'adam':  
@@ -176,16 +176,16 @@ class MInterfaceMultitask(pl.LightningModule):
 
     def lr_lambda(self, epoch):
         step = self.global_step
-        if step % self.cfg.TRAINING.lrDecayIter == 0:
-            if epoch < self.cfg.TRAINING.warmupEpoch:
-                return self.cfg.TRAIxNING.warmupGrowth
+        if step % self.cfg.TRAINING.lr_decayIter == 0:
+            if epoch < self.cfg.TRAINING.warmup_epoch:
+                return self.cfg.TRAIxNING.warmup_growth
             else:
-                return self.cfg.TRAINING.lrDecay
+                return self.cfg.TRAINING.lr_decay
         else: 
             return 1
 
     def configure_loss(self):
-        self.lossComputer = LossComputer(self.cfg, self.device)
+        self.loss_computer = LossComputer(self.cfg, self.device)
         self.lossCls = nn.CrossEntropyLoss()
         return
 
@@ -196,12 +196,12 @@ class MInterfaceMultitask(pl.LightningModule):
             print('Loading model dict from ' + cfg.MODEL.weightPath)
             self.model.load_state_dict(torch.load(cfg.MODEL.weightPath)['model_state_dict'], strict=True)
             
-    def writeKeypoints(self, phase):
+    def write_keypoints(self, phase):
         predFile = os.path.join(self.cfg.DATASET.log_dir, self.args.version, f"{phase}_results.json")
         with open(predFile, 'w') as fp:
             json.dump(self.save_preds, fp, indent=4)
     
-    def saveKeypoints(self, preds, bbox, image_id, predHeatmap=None):
+    def save_keypoints(self, preds, bbox, image_id, pred_heatmap=None):
         savePreds = []
         visidx = np.ones((len(preds), self.cfg.DATASET.num_keypoints, 1))
         preds = np.concatenate((preds, visidx), axis=2)
@@ -212,9 +212,9 @@ class MInterfaceMultitask(pl.LightningModule):
             block["image_id"] = int(image_id[j])
             block["score"] = 1.0
             block["keypoints"] = preds[j].reshape(self.cfg.DATASET.num_keypoints*3).tolist()
-            if predHeatmap is not None:
+            if pred_heatmap is not None:
                 for kpts in range(self.cfg.DATASET.num_keypoints):
-                    predsigma[j, kpts] = predHeatmap[j, kpts].var().item() * self.heatmap_size
+                    predsigma[j, kpts] = pred_heatmap[j, kpts].var().item() * self.heatmap_size
                 block["sigma"] = predsigma[j].tolist()
             block_copy = block.copy()
             savePreds.append(block_copy)

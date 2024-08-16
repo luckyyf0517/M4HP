@@ -143,20 +143,6 @@ class MInterface(pl.LightningModule):
         
         data_dict, _, batch_size = self.prepare_batch(batch)
         
-        if args.pretrain_vae: 
-            # ground truth data (normalized)
-            gt_vertices_sub2 = data_dict['gt_vertices_sub2']
-            gt_3d_joints = data_dict['gt_3d_joints']
-            # concatinate template joints and template vertices, and then duplicate to batch size
-            gt_vertices = torch.cat([gt_3d_joints, gt_vertices_sub2], dim=1)
-            gt_vertices = gt_vertices.expand(batch_size, -1, -1)    # [b, 677, 3]
-            kl_loss, reconst_loss = self.model(gt_vertices)
-            self.print('Valid iteration: {iter:04d}/{iter_all:04d}, kl loss: {kl_loss:8.4f}, reconst_loss: {reconst_loss:8.4f}'.format(
-                iter=batch_idx, iter_all=len(self.trainer.val_dataloaders), kl_loss=kl_loss, reconst_loss=reconst_loss))
-            self.log('PreValid/kl_loss', kl_loss.item(), on_step=False, on_epoch=True, logger=True, sync_dist=False)
-            self.log('PreValid/reconst_loss', reconst_loss.item(), on_step=False, on_epoch=True, logger=True, sync_dist=False)
-            return kl_loss + reconst_loss
-        
         pred_dict, pred_3d_joints, pred_vertices_sub2, pred_vertices_sub, pred_vertices = \
             self.model(args, data_dict, self.smpl, self.mesh_sampler)
             

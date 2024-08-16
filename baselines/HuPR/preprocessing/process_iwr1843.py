@@ -119,9 +119,9 @@ class RadarObject():
         dataFFTGroup = np.flip(dataFFTGroup, axis=(1, 2, 3))
         return dataFFTGroup  
     
-    def saveDataAsFigure(self, img, joints, output, visDirName, idxFrame, output2=None):
+    def saveDataAsFigure(self, img, joints, output, vis_dirName, idxFrame, output2=None):
         heatmap = PlotHeatmaps(joints, self.num_keypoints)
-        PlotMaps(visDirName, self.xIndices, self.yIndices, 
+        PlotMaps(vis_dirName, self.xIndices, self.yIndices, 
         idxFrame, output, img, heatmap, output2)
     
     def saveRadarData(self, matrix, dirName, idxFrame):
@@ -157,10 +157,10 @@ class RadarObject():
                 outputVert = np.load(vert_path)
                 outputHori = np.mean(np.abs(outputHori), axis=(0, 3))
                 outputVert = np.mean(np.abs(outputVert), axis=(0, 3))
-                visDirName = self.saveDirNameGroup[idxName] + '/visualization' + ('/%09d.png' % idxFrame)
+                vis_dirName = self.saveDirNameGroup[idxName] + '/visualization' + ('/%09d.png' % idxFrame)
                 img = np.array(Image.open(self.rgbFileNameGroup[idxName] + "/%09d.jpg" % idxFrame).convert('RGB'))
                 joints = annotGroup[idxFrame]['joints']
-                self.saveDataAsFigure(img, joints, outputHori, visDirName, idxFrame, outputVert)
+                self.saveDataAsFigure(img, joints, outputHori, vis_dirName, idxFrame, outputVert)
                 print('%s, finished frame %d' % (self.radarDataFileNameGroup[idxName][0], idxFrame), end='\r')
 
 if __name__ == "__main__":

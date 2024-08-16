@@ -3,7 +3,7 @@ DATASET:
   duration: 300
   heatmap_size: 64
   imgSize: 256
-  imgHeatmapRatio: 4
+  img_heatmap_ratio: 4
   rangeSize: 64
   azimuthSize: 64
   elevationSize: 8
@@ -24,7 +24,7 @@ DATASET:
     ]
   valName: [10, 20, 30, 40, 50]
   testName: [10, 20, 30, 40, 50]
-  idxToJoints: ["R_Hip", "R_Knee", "R_Ankle", "L_Hip", "L_Knee", "L_Ankle", "Neck", "Head", "L_Shoulder", "L_Elbow", "L_Wrist", "R_Shoulder", "R_Elbow", "R_Wrist"]
+  idx_to_joints: ["R_Hip", "R_Knee", "R_Ankle", "L_Hip", "L_Knee", "L_Ankle", "Neck", "Head", "L_Shoulder", "L_Elbow", "L_Wrist", "R_Shoulder", "R_Elbow", "R_Wrist"]
 MODEL:
   runClassification: False
   preLoad: False
@@ -35,12 +35,12 @@ TRAINING:
   batch_size: 24
   epochs: 20
   lr: 0.0001
-  warmupEpoch: -1
-  warmupGrowth: 1.005
-  lrDecay: 0.999
-  lrDecayIter: 2000
-  lossDecay: -1
-  useWeight: False
+  warmup_epoch: -1
+  warmup_growth: 1.005
+  lr_decay: 0.999
+  lr_decayIter: 2000
+  loss_decay: -1
+  use_weight: False
   optimizer: "adam"
 TEST:
   batch_size: 32

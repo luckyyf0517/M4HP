@@ -54,60 +54,59 @@ class DInterface(pl.LightningDataModule):
         return dataset
 
     def train_dataloader(self):
-        # sampler = SubsetShuffleSampler(self.train_set, shuffle=True)
+        sampler = SubsetShuffleSampler(self.train_set, shuffle=False)
         return DataLoader(
             self.train_set, 
             batch_size=self.batch_size,
             num_workers=self.num_workers, 
-            shuffle=True, 
-            # sampler=sampler,
+            # shuffle=True, 
+            sampler=sampler,
             persistent_workers=True, 
-            pin_memory=True)
+            pin_memory=False)
 
     def val_dataloader(self):
-        # sampler = SubsetShuffleSampler(self.val_set, shuffle=False)
+        sampler = SubsetShuffleSampler(self.val_set, shuffle=False)
         return DataLoader(
             self.val_set, 
             batch_size=self.batch_size, 
             num_workers=self.num_workers, 
-            shuffle=False, 
-            # sampler=sampler,
+            # shuffle=False, 
+            sampler=sampler,
             persistent_workers=True, 
-            pin_memory=True)
+            pin_memory=False)
 
     def test_dataloader(self):
-        # sampler = SubsetShuffleSampler(self.test_set, shuffle=False)
+        sampler = SubsetShuffleSampler(self.test_set, shuffle=False)
         return DataLoader(
             self.test_set, 
             batch_size=self.batch_size, 
             num_workers=self.num_workers, 
-            shuffle=False, 
-            # sampler=sampler,
-            pin_memory=True)
+            # shuffle=False, 
+            sampler=sampler,
+            pin_memory=False)
 
 
-# class SubsetShuffleSampler(DistributedSampler):
-#     def __init__(self, dataset, shuffle=True):
-#         super().__init__(deepcopy(dataset)) # compute self.total_size and self.num_replicas
-#         self.shuffle = shuffle
-#         self.indices = [i for i in range(len(dataset))]
+class SubsetShuffleSampler(DistributedSampler):
+    def __init__(self, dataset, shuffle=True):
+        super().__init__(deepcopy(dataset)) # compute self.total_size and self.num_replicas
+        self.shuffle = shuffle
+        self.indices = [i for i in range(len(dataset))]
 
-#     def __iter__(self):
-#         # split the indices for each gpu
-#         if self.rank != self.num_replicas - 1:
-#             indices = self.indices[self.rank * self.total_size // self.num_replicas: (self.rank + 1) * self.total_size// self.num_replicas]
-#         else:
-#             indices = self.indices[self.rank * self.total_size // self.num_replicas: ]
+    def __iter__(self):
+        # split the indices for each gpu
+        if self.rank != self.num_replicas - 1:
+            indices = self.indices[self.rank * self.total_size // self.num_replicas: (self.rank + 1) * self.total_size // self.num_replicas]
+        else:
+            indices = self.indices[self.rank * self.total_size // self.num_replicas: ]
+        try:
+            assert len(self)==len(indices)
+        except:
+            raise ValueError(f"Length not corresponding: {len(self), len(indices), len(self.indices), self.rank}")
         
-#         try:
-#             assert len(self)==len(indices)
-#         except:
-#             raise ValueError(f"Length not corresponding: {len(self), len(indices), len(self.indices), self.rank}")
+        if self.shuffle: 
+            random.shuffle(indices)
         
-#         if self.shuffle: 
-#             random.shuffle(indices)
-        
-#         return iter(indices)
+        return iter(indices)
 
     def __len__(self):
         return self.total_size // self.num_replicas

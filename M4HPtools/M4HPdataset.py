@@ -9,6 +9,7 @@ import os
 import sys
 import yaml
 import json
+import time
 import numpy as np
 import glob
 import multiprocessing
@@ -27,8 +28,8 @@ class M4HPSingleDataset():
         self.phase = phase
         self.cfg = cfg.DATASET
         self.seq_name = seq_name
-        print('Loading', seq_name)
         
+        self.load_raw_data = False  # load from bin file or eatracted files
         self.load_img = True
         self.load_mesh = False
         self.load_annotatoin = True
@@ -37,7 +38,10 @@ class M4HPSingleDataset():
         self._load_dataset()
         
     def _load_dataset(self): 
-        _, _, mmwave_cfg = self._load_radar_data(lazy_load=True)
+        if self.load_raw_data: 
+            _, _, mmwave_cfg = self._load_radar_data_from_bin(lazy_load=True)
+        else: 
+            _, _, mmwave_cfg = self._load_radar_data_from_folder()
         self.duration = mmwave_cfg['num_frames']
         self.data['mmwave_cfg'] = mmwave_cfg
         
@@ -51,7 +55,7 @@ class M4HPSingleDataset():
             self.data['joints2d'] = joints2d
             self.data['joints3d'] = joints3d
         
-    def _load_radar_data(self, lazy_load=True):
+    def _load_radar_data_from_bin(self, lazy_load=True):
         folder_name, object_name, subseq_name = self.seq_name[0: 6], self.seq_name[6: 9], self.seq_name[9: 12] 
         radar_data_dir = os.path.join(self.cfg.root_dir, 'Raw_files', folder_name, object_name, subseq_name, 'mmwave')
         # load radar config
@@ -67,8 +71,8 @@ class M4HPSingleDataset():
                 bin_hori = self.loaded_bin['hori']
                 bin_vert = self.loaded_bin['vert']
             except AttributeError:
-                # print(multiprocessing.current_process().name, 'Rank', dist.get_rank(), 'reloading', seq_name); 
-                print('reloading', self.seq_name); 
+                print(multiprocessing.current_process().name, 'Rank', dist.get_rank(), 'reloading', self.seq_name); 
+                # print('reloading', self.seq_name); 
                 bin_hori = torch.from_numpy(np.fromfile(open(os.path.join(radar_data_dir, 'adc_data_hori.bin'), 'rb'), dtype=np.int16))
                 bin_vert = torch.from_numpy(np.fromfile(open(os.path.join(radar_data_dir, 'adc_data_vert.bin'), 'rb'), dtype=np.int16))
                 bin_hori = self._reshape_bin(bin_hori, mmwave_cfg)
@@ -76,6 +80,17 @@ class M4HPSingleDataset():
                 self.loaded_bin = {'hori': bin_hori, 'vert': bin_vert}
         return bin_hori, bin_vert, mmwave_cfg
     
+    def _load_radar_data_from_folder(self): 
+        folder_name, object_name, subseq_name = self.seq_name[0: 6], self.seq_name[6: 9], self.seq_name[9: 12] 
+        radar_data_dir = os.path.join(self.cfg.root_dir, 'Radar_files', folder_name, object_name, subseq_name, 'mmwave')
+        # load radar config
+        with open(os.path.join(radar_data_dir, "radar_config.yaml"), 'r') as f:
+            mmwave_cfg = yaml.load(f, Loader=yaml.FullLoader)
+            
+        radar_files_hori = sorted(glob.glob(radar_data_dir + '/hori/*.pt'))  
+        radar_files_vert = sorted(glob.glob(radar_data_dir + '/vert/*.pt'))
+        return radar_files_hori, radar_files_vert, mmwave_cfg
+        
     @staticmethod
     def _reshape_bin(bin_file, mmwave_cfg): 
         adc_shape = torch.tensor(mmwave_cfg['adc_shape'])
@@ -118,9 +133,14 @@ class M4HPSingleDataset():
         item_dict = {'seq_name': self.seq_name, 'index': index}
         startFrame, endFrame = self._select_group_frames(index)
         
-        bin_hori, bin_vert, mmwave_cfg = self._load_radar_data(lazy_load=False)
-        mmwave_bin_hori = bin_hori[startFrame: endFrame]
-        mmwave_bin_vert = bin_vert[startFrame: endFrame]
+        if self.load_raw_data: 
+            bin_hori, bin_vert, mmwave_cfg = self._load_radar_data_from_bin(lazy_load=False)
+            mmwave_bin_hori = bin_hori[startFrame: endFrame]
+            mmwave_bin_vert = bin_vert[startFrame: endFrame]
+        else: 
+            radar_files_hori, radar_files_vert, mmwave_cfg = self._load_radar_data_from_folder()
+            mmwave_bin_hori = torch.stack([torch.load(radar_files_hori[i]) for i in range(startFrame, endFrame)])
+            mmwave_bin_vert = torch.stack([torch.load(radar_files_vert[i]) for i in range(startFrame, endFrame)])
         item_dict['mmwave_bin_hori'] = mmwave_bin_hori
         item_dict['mmwave_bin_vert'] = mmwave_bin_vert
         item_dict['mmwave_cfg'] = mmwave_cfg
@@ -133,7 +153,6 @@ class M4HPSingleDataset():
             item_dict['joints2d'] = torch.tensor(self.data['joints2d'][index]['joints'])
             item_dict['joints3d'] = torch.tensor(self.data['joints3d'][index]['joints'])
             item_dict['bbox'] = torch.tensor(self.data['joints2d'][index]['bbox'])
-
         return item_dict        
     
     def __len__(self): 
@@ -143,7 +162,7 @@ if __name__ == '__main__':
     cfg = edict(yaml.safe_load(open('config/M4HPconfig.yaml', 'r')))
     train_dataset = data.ConcatDataset([
         M4HPSingleDataset('train', cfg, seq_name) for seq_name in cfg.DATASET.train_seqs])
-    train_dataloader = data.DataLoader(train_dataset, batch_size=8, shuffle=True, num_workers=0)
+    train_dataloader = data.DataLoader(train_dataset, batch_size=24, shuffle=True, num_workers=0)
     batch = next(iter(train_dataloader))
     
     from IPython import embed; embed()

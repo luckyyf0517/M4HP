@@ -133,12 +133,12 @@ class MInterfaceHuPRClassification(pl.LightningModule):
         
     def configure_optimizers(self):
         # Optimizer
-        self.stepSize = self.cfg.TRAINING.warmupEpoch
-        # self.stepSize = len(self.trainer.train_dataloader) * self.cfg.TRAINING.warmupEpoch
-        if self.cfg.TRAINING.warmupEpoch == -1: 
+        self.step_size = self.cfg.TRAINING.warmup_epoch
+        # self.step_size = len(self.trainer.train_dataloader) * self.cfg.TRAINING.warmup_epoch
+        if self.cfg.TRAINING.warmup_epoch == -1: 
             LR = self.cfg.TRAINING.lr  
         else: 
-            LR = self.cfg.TRAINING.lr / (self.cfg.TRAINING.warmupGrowth ** self.stepSize)
+            LR = self.cfg.TRAINING.lr / (self.cfg.TRAINING.warmup_growth ** self.step_size)
         if self.cfg.TRAINING.optimizer == 'sgd':
             optimizer = optim.SGD(self.model.parameters(), lr=LR, momentum=0.90, weight_decay=1e-4)
         elif self.cfg.TRAINING.optimizer == 'adam':  
@@ -149,11 +149,11 @@ class MInterfaceHuPRClassification(pl.LightningModule):
 
     def lr_lambda(self, epoch):
         step = self.global_step
-        if step % self.cfg.TRAINING.lrDecayIter == 0:
-            if epoch < self.cfg.TRAINING.warmupEpoch:
-                return self.cfg.TRAIxNING.warmupGrowth
+        if step % self.cfg.TRAINING.lr_decayIter == 0:
+            if epoch < self.cfg.TRAINING.warmup_epoch:
+                return self.cfg.TRAIxNING.warmup_growth
             else:
-                return self.cfg.TRAINING.lrDecay
+                return self.cfg.TRAINING.lr_decay
         else: 
             return 1
     

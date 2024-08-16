@@ -49,11 +49,6 @@ if __name__ == "__main__":
     
     from modelInterface import MInterfaceHuPR
     model = MInterfaceHuPR(args, cfg)
-    # from modelInterface import MInterfaceHuPRClassification
-    # model = MInterfaceHuPRClassification(args, cfg)
-    # from modelInterface import MInterfaceMultitask
-    # model = MInterfaceMultitask(args, cfg)
-    
     data = DInterface(batch_size=cfg.TRAINING.batch_size, num_workers=cfg.SETUP.num_workers, cfg=cfg, args=args)
     
     # Checkpoint callback
@@ -82,7 +77,7 @@ if __name__ == "__main__":
         callbacks=[checkpoint_callback], 
         num_sanity_val_steps=0,
         use_distributed_sampler=False,
-        )
+    )
 
     if args.eval:
         data.setup(stage='test')

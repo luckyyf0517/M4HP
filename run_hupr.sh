@@ -13,7 +13,7 @@ if [ "$2" == "eval" ]; then
     EVAL_FLAG="--eval"
 fi
 
-echo python baselines/run_hupr.py --version $VERSION_OR_CONFIG --config $VERSION_OR_CONFIG.yaml --gpuIDs '[0,1,2,3]' $EVAL_FLAG
+echo python baselines/run_hupr.py --version $VERSION_OR_CONFIG --config $VERSION_OR_CONFIG.yaml --gpu '[0,1,2,3]' $EVAL_FLAG
 
 export OMP_NUM_THREADS=10 
-python baselines/run_hupr.py --version $VERSION_OR_CONFIG --config $VERSION_OR_CONFIG.yaml --gpuIDs '[0,1,2,3]' $EVAL_FLAG --visDir /root/viz
+python baselines/run_hupr.py --version $VERSION_OR_CONFIG --config $VERSION_OR_CONFIG.yaml --gpu '[0,1,2,3]' $EVAL_FLAG 

@@ -16,7 +16,7 @@ class BaseRunner():
         torch.manual_seed(args.seed)
         torch.cuda.manual_seed_all(args.seed)
         self.dir = args.version
-        self.visDir = args.visDir
+        self.vis_dir = args.vis_dir
         self.args = args
         self.cfg = cfg
         self.heatmap_size = self.width = self.height = self.cfg.DATASET.heatmap_size
@@ -26,7 +26,7 @@ class BaseRunner():
         self.start_epoch = 0
         self.numFrames = self.cfg.DATASET.numFrames
         self.F = self.cfg.DATASET.num_group_frames
-        self.imgHeatmapRatio = self.cfg.DATASET.imgSize / self.cfg.DATASET.heatmap_size
+        self.img_heatmap_ratio = self.cfg.DATASET.imgSize / self.cfg.DATASET.heatmap_size
         self.aspectRatio = self.imgWidth * 1.0 / self.imgHeight
         self.pixel_std = 200
 
@@ -35,8 +35,8 @@ class BaseRunner():
         self.logger = Logger()
         if not os.path.isdir(self.dir):
             os.mkdir(self.dir)
-        if not os.path.isdir(self.visDir):
-            os.mkdir(self.visDir)
+        if not os.path.isdir(self.vis_dir):
+            os.mkdir(self.vis_dir)
         # if not self.args.eval:
         #     print('==========>Train set size:', len(self.trainLoader))
         # print('==========>Test set size:', len(self.testLoader))
@@ -64,12 +64,12 @@ class BaseRunner():
         return center, scale
 
     def adjustLR(self, epoch):
-        if epoch < self.cfg.TRAINING.warmupEpoch:
+        if epoch < self.cfg.TRAINING.warmup_epoch:
             for param_group in self.optimizer.param_groups:
-                param_group['lr'] *= self.cfg.TRAINING.warmupGrowth
+                param_group['lr'] *= self.cfg.TRAINING.warmup_growth
         else:
             for param_group in self.optimizer.param_groups:
-                param_group['lr'] *= self.cfg.TRAINING.lrDecay
+                param_group['lr'] *= self.cfg.TRAINING.lr_decay
 
 
     def saveModelWeight(self, epoch, acc):

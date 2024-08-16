@@ -3,7 +3,7 @@ import numpy as np
 import torch.nn as nn
 import torch.nn.functional as F
 
-def generateTarget(joints, num_keypoints, hSize, iSize, isCoord=False, sigmas=None):
+def generate_target(joints, num_keypoints, hSize, iSize, isCoord=False, sigmas=None):
     '''
     :param joints:  [num_joints, 3]
     :param joints_vis: [num_joints, 3]

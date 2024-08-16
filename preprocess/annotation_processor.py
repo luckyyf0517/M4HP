@@ -24,8 +24,8 @@ class AnnotationProcessor():
             
             target_path = source_path.replace('kinect', 'annotation')
             os.makedirs(target_path, exist_ok=True)
-            json.dump(joints2d, open(os.path.join(target_path, 'skeleton2d.json'), 'w'))
-            json.dump(joints3d, open(os.path.join(target_path, 'skeleton3d.json'), 'w'))
+            json.dump(joints2d, open(os.path.join(target_path, 'joints2d.json'), 'w'))
+            json.dump(joints3d, open(os.path.join(target_path, 'joints3d.json'), 'w'))
             
             
 if __name__ == '__main__':

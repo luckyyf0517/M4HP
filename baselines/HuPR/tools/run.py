@@ -27,8 +27,8 @@ class Runner(BaseRunner):
                               shuffle=False,
                               num_workers=cfg.SETUP.num_workers)
         self.model = HuPRNet(self.cfg).to(self.device)
-        self.stepSize = len(self.trainLoader) * self.cfg.TRAINING.warmupEpoch
-        LR = self.cfg.TRAINING.lr if self.cfg.TRAINING.warmupEpoch == -1 else self.cfg.TRAINING.lr / (self.cfg.TRAINING.warmupGrowth ** self.stepSize)
+        self.step_size = len(self.trainLoader) * self.cfg.TRAINING.warmup_epoch
+        LR = self.cfg.TRAINING.lr if self.cfg.TRAINING.warmup_epoch == -1 else self.cfg.TRAINING.lr / (self.cfg.TRAINING.warmup_growth ** self.step_size)
         self.initialize(LR)
         self.beta = 0.0
     
@@ -46,17 +46,17 @@ class Runner(BaseRunner):
                 VRDAEmaps_hori = batch['VRDAEmap_hori'].float().to(self.device)
                 VRDAEmaps_vert = batch['VRDAEmap_vert'].float().to(self.device)
                 preds = self.model(VRDAEmaps_hori, VRDAEmaps_vert)
-                loss, loss2, preds, gts = self.lossComputer.computeLoss(preds, keypoints)
+                loss, loss2, preds, gts = self.loss_computer.compute_loss(preds, keypoints)
                 self.logger.display(loss, loss2, keypoints.size(0), epoch)
                 if visualization:
-                    plotHumanPose(preds*self.imgHeatmapRatio, self.cfg, 
-                                  self.visDir, imageId, None)
+                    plotHumanPose(preds*self.img_heatmap_ratio, self.cfg, 
+                                  self.vis_dir, imageId, None)
                     # for drawing GT
-                    plotHumanPose(gts * self.imgHeatmapRatio, self.cfg, 
-                                  self.visDir, imageId, None, truth=True)
-            self.saveKeypoints(savePreds, preds*self.imgHeatmapRatio, bbox, imageId)
+                    plotHumanPose(gts * self.img_heatmap_ratio, self.cfg, 
+                                  self.vis_dir, imageId, None, truth=True)
+            self.save_keypoints(savePreds, preds*self.img_heatmap_ratio, bbox, imageId)
             loss_list.append(loss.item())
-        self.writeKeypoints(savePreds)
+        self.write_keypoints(savePreds)
         if self.args.keypoints:
             accAP = self.testSet.evaluateEach(self.dir)
         accAP = self.testSet.evaluate(self.dir)
@@ -78,12 +78,12 @@ class Runner(BaseRunner):
                 VRDAEmaps_hori = batch['VRDAEmap_hori'].float().to(self.device)
                 VRDAEmaps_vert = batch['VRDAEmap_vert'].float().to(self.device)
                 preds = self.model(VRDAEmaps_hori, VRDAEmaps_vert)
-                loss, loss2, _, _ = self.lossComputer.computeLoss(preds, keypoints)
+                loss, loss2, _, _ = self.loss_computer.compute_loss(preds, keypoints)
                 writer.add_scalar('Loss/train', loss, global_step)
                 loss.backward()
                 self.optimizer.step()                    
                 self.logger.display(loss, loss2, keypoints.size(0), epoch)
-                if idxBatch % self.cfg.TRAINING.lrDecayIter == 0: #200 == 0:
+                if idxBatch % self.cfg.TRAINING.lr_decayIter == 0: #200 == 0:
                   self.adjustLR(epoch)
                 loss_list.append(loss.item())
                 global_step += 1
